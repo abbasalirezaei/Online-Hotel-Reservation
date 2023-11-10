@@ -29,6 +29,7 @@ class RoomAdmin(admin.ModelAdmin):
         model = Room
 
     list_display = ['__str__', 'is_booked']    
+    list_editable=['is_booked',]
     actions = [update_room_is_booked_to_false]
 
 

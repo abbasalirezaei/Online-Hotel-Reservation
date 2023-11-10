@@ -9,6 +9,7 @@ export default function ReservationForm() {
 	const [room, setRoom] = useState({})
 	const token = localStorage.getItem("authTokens")
 	const api = useAxios()
+
 	if (token) {
 		const decode = jwtDecode(token)
 		var user_id = decode.user_id
@@ -45,13 +46,12 @@ export default function ReservationForm() {
 			room: room.id,
 			customer: user_id,
 		};
-		
-	
+
+
 		api.post("/hotel/api/v1/book/", bookingDate, {
 			headers: { "Content-Type": "application/json" },
 		})
 			.then(response => {
-				console.log('Post created:', response.data);
 				setData(
 					{
 						email: "",
@@ -63,7 +63,19 @@ export default function ReservationForm() {
 			.catch(error => {
 				console.error('Error creating post:', error);
 			});
+
+		setData(
+			{
+				email: "",
+				phone_number: "",
+				checking_date: "",
+				checkout_date: "",
+			})
 	};
+
+	if (!token) {
+		window.location.href = '/login'
+	}
 	return (
 		<div>
 			<div classNameName='text-center mt-2'>

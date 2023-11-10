@@ -17,32 +17,7 @@ export default function Home() {
             <div>
                 <div className="container mx-auto p-5">
 
-                    {/* Hero sectioin */}
-                    <div className="md:flex md:flex-row mt-20">
-                        <div className="md:w-2/5 flex flex-col justify-center items-center">
-                            <h2 className="font-serif text-5xl text-gray-600 mb-4 text-center md:self-start md:text-left">
-                                به سایت من خوش آمدی.
-                            </h2>
-                            <p className="uppercase text-gray-600 tracking-wide text-center md:self-start md:text-left">
-                                فروشگاه عباس شاپ.
-                            </p>
-                            <p className="uppercase text-gray-600 tracking-wide text-center md:self-start md:text-left">
-                                بهترین موبایل و تجیهزات گوشی را از ما بخرید.
-                            </p>
-                            <a
-                                href="#"
-                                className="bg-gradient-to-r from-red-600 to-pink-500 rounded-full py-4 px-8 text-gray-50 uppercase text-xl md:self-start my-5">
-                                همین الان بخر
-                            </a>
-                        </div>
-                        <div className="md:w-3/5">
-                            <img src="https://ad2cart.com/wp-content/uploads/2021/02/ecommerce-website-banners.jpg"
-                                className="w-full" />
-                        </div>
-                    </div>
-                    {/* End Hero sectioin */}
-
-                    <div className="my-20">
+                    <div className="">
                         <div className="flex flex-row justify-between my-5">
                             <h2 className="text-3xl">Rooms</h2>
                             <Link to="/rooms" className="flex flex-row text-lg uppercase hover:text-gray-900  ">

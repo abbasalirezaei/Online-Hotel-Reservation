@@ -39,23 +39,8 @@ export const Nav = () => {
                 </div>
             </div>
 
-            <div className="navbar-center hidden lg:flex">
-                <ul className="menu menu-horizontal px-1">
-                    <li><Link to="/rooms" >Rooms</Link></li>
-                    <li tabIndex={0}>
-                        <details>
-                            <summary>Parent</summary>
-                            <ul className="p-2">
-                                <li><a>Submenu 1</a></li>
-                                <li><a>Submenu 2</a></li>
-                            </ul>
-                        </details>
-                    </li>
-                    <li><a>Item 3</a></li>
-                </ul>
-            </div>
             <div className="navbar-end">
-                <a className="btn btn-sm">تستی</a>
+                <Link className="btn btn-sm" to="/rooms">Rooms</Link>
             </div>
             <div className="flex-none">
                 <div className="dropdown dropdown-end">
