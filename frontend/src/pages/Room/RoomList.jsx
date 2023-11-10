@@ -1,7 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
 import RoomItem from './RoomItem'
-import useAxios from '../../utils/useAxios'
-import RoomsFilter from './RoomsFilter'
 import RoomFilter from './RoomFilter';
 import RoomContext from '../../context/RoomContext';
 
