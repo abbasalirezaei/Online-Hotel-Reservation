@@ -2,7 +2,7 @@ import React, { useContext } from 'react'
 import Banner6 from './Banner6';
 import Footer from './Footer';
 import Newsletter from './Newsletter';
-import ProductCard from './Room/ProductCard';
+
 import { Link } from 'react-router-dom';
 import RoomContext from '../context/RoomContext';
 import RoomItem from './Room/RoomItem';

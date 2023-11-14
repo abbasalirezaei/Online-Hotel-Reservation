@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import axios from "axios";
 import { Link, useParams } from "react-router-dom";
 import { jwtDecode } from 'jwt-decode';
 import useAxios from '../../utils/useAxios';
+import RoomContext from '../../context/RoomContext';
 
 export default function ReservationForm() {
 	const { room_slug } = useParams()
+	const { setRooms, rooms, setRortedRooms, sortedRooms } = useContext(RoomContext);
 	const [room, setRoom] = useState({})
 	const token = localStorage.getItem("authTokens")
 	const api = useAxios()
@@ -35,6 +37,33 @@ export default function ReservationForm() {
 			});
 	}
 
+	const handleBook = (id) => {
+		const updatedRooms = rooms.map((item) => {
+			if (item.id === id) {
+				return {
+					...item,
+					is_booked: true,
+				};
+			}
+			return item;
+		});
+
+
+		setRooms(updatedRooms);
+
+		const updatedSortedRooms = sortedRooms.map((room) => {
+			if (room.id === id) {
+				return {
+					...room,
+					is_booked: true,
+				};
+			}
+			return room;
+		});
+
+		setRortedRooms(updatedSortedRooms);
+	};
+
 	const handleSubmit = (event) => {
 		event.preventDefault();
 
@@ -59,6 +88,7 @@ export default function ReservationForm() {
 						checking_date: "",
 						checkout_date: "",
 					})
+				handleBook(room.id)
 			})
 			.catch(error => {
 				console.error('Error creating post:', error);
@@ -72,6 +102,7 @@ export default function ReservationForm() {
 				checkout_date: "",
 			})
 	};
+
 
 	if (!token) {
 		window.location.href = '/login'

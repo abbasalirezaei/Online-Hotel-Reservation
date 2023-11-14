@@ -61,7 +61,7 @@ export default function RoomFilter() {
         let filteredRooms = [...rooms]
 
         if (!reserved) {
-            filteredRooms = filteredRooms.filter((room) => room.is_booked === !reserved);
+            filteredRooms = filteredRooms.filter((room) => room.is_booked === reserved);
         }
         setRortedRooms(filteredRooms)
     }

@@ -90,10 +90,10 @@ export const Nav = () => {
                             :
                             < >
                                 <li>
-                                    <a className="justify-between">
-                                        Profile
+                                    <Link   to ="/dashboard" className="justify-between">
+                                        Dashboard
                                         <span className="badge">New</span>
-                                    </a>
+                                    </Link>
                                 </li>
                                 <li><a>Settings</a></li>
                                 <li><a onClick={logoutUser} >Logout</a></li>

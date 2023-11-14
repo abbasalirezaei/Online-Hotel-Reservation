@@ -28,6 +28,8 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 		token['email']=user.email
 		token['username']=user.username
+		token['is_admin'] = user.groups.filter(name='admin').exists()
+		token['is_staff'] = user.is_staff
 
 		return token
 
@@ -60,60 +62,60 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class PasswordResetSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    user = None  # Add a user field to store the user instance
+	email = serializers.EmailField()
+	user = None  # Add a user field to store the user instance
 
-    def validate_email(self, value):
-        try:
-            user = User.objects.get(email=value)
-        except User.DoesNotExist:
-            raise ValidationError('User with this email address does not exist.')
-        self.user = user  # Store the user instance in the serializer
-        return value
+	def validate_email(self, value):
+		try:
+			user = User.objects.get(email=value)
+		except User.DoesNotExist:
+			raise ValidationError('User with this email address does not exist.')
+		self.user = user  # Store the user instance in the serializer
+		return value
 
-    def save(self):
-        user = self.user  # Retrieve the user from the serializer
-        token = default_token_generator.make_token(user)
-        user.set_reset_password_token(token)
-        user.send_reset_password_email()
+	def save(self):
+		user = self.user  # Retrieve the user from the serializer
+		token = default_token_generator.make_token(user)
+		user.set_reset_password_token(token)
+		user.send_reset_password_email()
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    token = serializers.CharField()
-    uid = serializers.CharField()
+	token = serializers.CharField()
+	uid = serializers.CharField()
 
-    password = serializers.CharField(
-        style={'input_type': 'password'},
-        write_only=True
-    )
-    confirm_password = serializers.CharField(
-        style={'input_type': 'password'},
-        write_only=True
-    )
+	password = serializers.CharField(
+		style={'input_type': 'password'},
+		write_only=True
+	)
+	confirm_password = serializers.CharField(
+		style={'input_type': 'password'},
+		write_only=True
+	)
 
-    def validate(self, attrs):
-        try:
-            uid = force_str(urlsafe_base64_decode(attrs['uid']))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise ValidationError('Invalid password reset token.')
+	def validate(self, attrs):
+		try:
+			uid = force_str(urlsafe_base64_decode(attrs['uid']))
+			user = User.objects.get(pk=uid)
+		except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+			raise ValidationError('Invalid password reset token.')
 
-        if not default_token_generator.check_token(user, attrs['token']):
-            raise ValidationError('Invalid password reset token.')
+		if not default_token_generator.check_token(user, attrs['token']):
+			raise ValidationError('Invalid password reset token.')
 
-        password = attrs['password']
-        confirm_password = attrs['confirm_password']
+		password = attrs['password']
+		confirm_password = attrs['confirm_password']
 
-        # Validate password strength
-        validate_password(password)
+		# Validate password strength
+		validate_password(password)
 
-        if password != confirm_password:
-            raise ValidationError('Passwords do not match.')
+		if password != confirm_password:
+			raise ValidationError('Passwords do not match.')
 
-        attrs['user'] = user
-        return attrs
+		attrs['user'] = user
+		return attrs
 
-    def save(self):
-        user = self.validated_data['user']
-        password = self.validated_data['password']
-        user.set_password(password)
-        user.save()
+	def save(self):
+		user = self.validated_data['user']
+		password = self.validated_data['password']
+		user.set_password(password)
+		user.save()

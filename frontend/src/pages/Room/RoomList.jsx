@@ -5,10 +5,38 @@ import RoomContext from '../../context/RoomContext';
 
 
 export default function RoomList() {
-    // const { sortedRooms } = useContext(RoomContext)|| [];
-    // console.log(sortedRooms);
-    const { sortedRooms
-    } = useContext(RoomContext)
+
+    // async function fetchData() {
+    //     try {
+    //         const response = await axios.get(baseURL + "/hotel/api/v1/get_room_list/");
+    //         const featured = response.data.filter((room) => room.featured);
+    //         const minPrice = parseInt(Math.min(...getUniqueValues(response.data, "price_per_night")));
+    //         const maxPrice = parseInt(Math.max(...getUniqueValues(response.data, "price_per_night")));
+    //         const maxRoomSize = parseInt(Math.max(...getUniqueValues(response.data, "room_size")));
+    //         const minRoomSize = parseInt(Math.min(...getUniqueValues(response.data, "room_size")));
+
+    //         setRooms(response.data)
+    //         setRortedRooms(response.data)
+    //         setFeaturedRooms(featured)
+    //         setmaxPrice(maxPrice)
+
+    //         setminPrice(minPrice)
+
+    //         setPricePerNight(maxPrice)
+
+
+    //     } catch (error) {
+    //         console.log(error);
+    //     }
+    // }
+    // useEffect(() => {
+
+
+    //     fetchData();
+    // }, []);
+
+    const { sortedRooms } = useContext(RoomContext)
+    // const [rooms, setRooms] = useState([])
 
     return (
         <div >

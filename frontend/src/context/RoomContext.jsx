@@ -55,9 +55,10 @@ export const RoomProvider = ({ children }) => {
         fetchData();
     }, []);
 
-
+  
     const contextData = {
         rooms,
+        setRooms,
         sortedRooms,
         setRortedRooms,
         categoryName,
@@ -69,9 +70,7 @@ export const RoomProvider = ({ children }) => {
         pricePerNight,
         setPricePerNight,
         maxPrice,
-        minPrice
-
-
+        minPrice,
     }
 
     return (

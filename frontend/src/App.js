@@ -13,6 +13,7 @@ import ReservationForm from './pages/Room/ReservationForm';
 
 import { AuthProvider } from './context/AuthContext';
 import { RoomProvider } from './context/RoomContext';
+import Dashboard from './components/Accounts/Dashboard';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
 
           <Routes>
             <Route Component={Home} path="/" />
+            <Route Component={Dashboard} path="/dashboard" />
             <Route Component={RoomList} path="/rooms" />
             <Route Component={RoomDetail} path="/room/:room_slug" />
             <Route
