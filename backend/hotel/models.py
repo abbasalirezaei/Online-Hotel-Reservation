@@ -3,7 +3,10 @@ from django.db import models
 
 from accounts.models import User
 
+# -------------------------------
 # Category Model
+# This model stores information about each category, including name.
+# -------------------------------
 class Category(models.Model):
     name = models.CharField(max_length=30,verbose_name='دسته بندی')
 
@@ -13,6 +16,10 @@ class Category(models.Model):
         verbose_name = "دسته بندی"
         verbose_name_plural = "دسته بندی ها"
 
+
+
+
+
 def room_images_upload_path(instance, file_name):
     return f"{instance.room_slug}/room_cover/{file_name}"
 
@@ -20,7 +27,10 @@ def room_images_upload_path(instance, file_name):
 def room_display_images_upload_path(instance, file_name):
     return f"{instance.room.room_slug}/room_display/{file_name}"
 
-
+# -------------------------------
+# Room Model
+# This model stores information about each room, including title, slug, bed type, category, and other features.
+# -------------------------------
 class Room(models.Model):
     BED_TYPES = [
         ('single', 'تک نفره'),
@@ -61,7 +71,10 @@ class Room(models.Model):
         verbose_name = "اتاق"
         verbose_name_plural = "اتاق ها"
 
-
+# -------------------------------
+# Customer Model
+# This model stores information about each customer, including their username and email.
+# -------------------------------
 class Customer(models.Model):
     customer = models.ForeignKey(User, on_delete=models.CASCADE)
 
@@ -71,6 +84,10 @@ class Customer(models.Model):
         verbose_name = "مشتری"
         verbose_name_plural = "مشتری ها"
 
+# -------------------------------
+# Booking Model
+# This model stores information about each booking, including the customer, room, booking date, checking date, and checkout date.
+# -------------------------------
 class Booking(models.Model):
     customer = models.ForeignKey(User, on_delete=models.CASCADE)
     room = models.ForeignKey('Room', on_delete=models.CASCADE)
@@ -86,6 +103,10 @@ class Booking(models.Model):
         verbose_name = "رزرو"
         verbose_name_plural = "رزرو ها"
 
+# -------------------------------
+# Payment Model
+# This model stores information about each payment, including the customer.
+# -------------------------------
 class Payment(models.Model):
     customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
 
@@ -95,6 +116,10 @@ class Payment(models.Model):
         verbose_name = "پرداخت"
         verbose_name_plural = "پرداخت ها"   
 
+# -------------------------------
+# CheckIn Model
+# This model stores information about each check-in, including the customer and room.
+# -------------------------------
 class CheckIn(models.Model):
     customer = models.ForeignKey(User, on_delete=models.CASCADE)
     room = models.ForeignKey('Room', on_delete=models.CASCADE)
@@ -107,6 +132,10 @@ class CheckIn(models.Model):
         verbose_name = "چکین"
         verbose_name_plural = "چکین ها"
 
+# -------------------------------
+# CheckOut Model
+# This model stores information about each check-out, including the customer and check-out date.
+# -------------------------------
 class CheckOut(models.Model):
     customer = models.ForeignKey('Customer', on_delete=models.CASCADE)
     check_out_date = models.DateTimeField(auto_now_add=True)
@@ -117,6 +146,10 @@ class CheckOut(models.Model):
         verbose_name = "چک آوت"
         verbose_name_plural = "چک آوت ها"
 
+# -------------------------------
+# RoomDisplayImages Model
+# This model stores information about each room display image, including the room and display image.
+# -------------------------------
 class RoomDisplayImages(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     display_images = models.ImageField(
