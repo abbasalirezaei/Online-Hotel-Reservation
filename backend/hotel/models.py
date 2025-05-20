@@ -2,6 +2,8 @@ from tabnanny import verbose
 from django.db import models
 from django.utils.text import slugify
 from accounts.models import User
+from django.core.validators import RegexValidator
+
 
 # List of models
 # Category
@@ -115,14 +117,29 @@ class Room(models.Model):
 # This model stores information about each customer, including their username and email.
 # -------------------------------
 class Customer(models.Model):
-    customer = models.ForeignKey(User, on_delete=models.CASCADE)
-
+    customer = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    phone_regex = RegexValidator(
+        regex=r'^\+?1?\d{9,14}$',
+        message="شماره تلفن باید با فرمت صحیح وارد شود. مثل: +989121234567"
+    )
+    phone_number = models.CharField(validators=[phone_regex], max_length=14, null=True, blank=True, verbose_name="شماره تلفن",db_index=True)
+    address = models.CharField(max_length=255, blank=True, null=True, verbose_name="آدرس")
+    national_id = models.CharField(max_length=10, blank=True, null=True, verbose_name="کد ملی")
+    date_of_birth = models.DateField(blank=True, null=True, verbose_name="تاریخ تولد")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد",db_index=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی",db_index=True)
+    
     def __str__(self):
         return self.customer.username
     class Meta:
         verbose_name = "مشتری"
         verbose_name_plural = "مشتری ها"
-
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['customer']),
+            models.Index(fields=['phone_number']),
+            models.Index(fields=['national_id']),
+        ]
 # -------------------------------
 # Booking Model
 # This model stores information about each booking, including the customer, room, booking date, checking date, and checkout date.
