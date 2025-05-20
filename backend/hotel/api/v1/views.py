@@ -7,8 +7,20 @@ from rest_framework.response import Response
 from rest_framework import status
 
 
-from hotel.models import Room, Booking, CheckIn, RoomDisplayImages
-from .serializers import RoomSerializer, BookingSerializer, CheckinSerializer, RoomDisplayImagesSerializer
+from hotel.models import (
+    Category,
+    Room,
+    Booking,
+    CheckIn,
+    RoomDisplayImages
+)
+from .serializers import (
+    CategorySerializer,
+    RoomSerializer,
+    BookingSerializer,
+    CheckinSerializer,
+    RoomDisplayImagesSerializer
+)
 
 
 @api_view(['GET'])
@@ -20,7 +32,9 @@ def getRoutes(request):
         '/checkout/',
         '/get_current_checked_in_rooms/',
         '/room-display-images/',
-        '/room-display-images/<int:room_id>/',  
+        '/room-display-images/<int:room_id>/',
+        'categories/',
+        'categories/<slug:slug>/'
 
     ]
     return Response(routes)
@@ -30,21 +44,45 @@ class RoomView(ListAPIView):
     serializer_class = RoomSerializer
     queryset = Room.objects.order_by('-id')
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        category_name = self.request.query_params.get('category_name')
+        if category_name:
+            queryset = queryset.filter(category__name=category_name)
+        return queryset
+
+
+
+class RoomDetailView(RetrieveAPIView):
+    serializer_class = RoomSerializer
+    queryset = Room.objects.all()
+    lookup_field = 'room_slug'
+
+
+# 
+class CategoryListView(ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    
+    
+# Retrieve details of a single category
+class CategoryDetailView(RetrieveAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    lookup_field = 'slug'  # or 'pk' if you're using IDs
+
 class RoomDisplayImagesListView(ListAPIView):
     queryset = RoomDisplayImages.objects.all()
     serializer_class = RoomDisplayImagesSerializer
+
 
 class RoomDisplayImagesByRoomView(ListAPIView):
     serializer_class = RoomDisplayImagesSerializer
 
     def get_queryset(self):
         room_id = self.kwargs['room_id']
-        return RoomDisplayImages.objects.filter(room_id=room_id)    
+        return RoomDisplayImages.objects.filter(room_id=room_id)
 
-class RoomDetailView(RetrieveAPIView):
-    serializer_class = RoomSerializer
-    queryset = Room.objects.all()
-    lookup_field = 'room_slug'
 
 
 class BookingCreateApiView(CreateAPIView):
@@ -68,7 +106,7 @@ class BookingCreateApiView(CreateAPIView):
             return Response({"response": "Room is already booked"}, status=status.HTTP_200_OK)
         room.is_booked = True
         room.save()
-        
+
         checked_in_room = CheckIn.objects.create(
             customer=request.user,
             room=room,

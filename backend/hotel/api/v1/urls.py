@@ -1,9 +1,14 @@
 from django.contrib import admin
 from django.urls import path, include
-from .views import (RoomView, RoomDetailView,
-                    BookingCreateApiView, CheckoutView,
-                    CheckedInView, getRoutes,
-                    RoomDisplayImagesByRoomView, RoomDisplayImagesListView)
+from .views import (
+    RoomView, RoomDetailView,
+    BookingCreateApiView, CheckoutView,
+    CheckedInView, getRoutes,
+    RoomDisplayImagesByRoomView,
+    RoomDisplayImagesListView,
+    CategoryListView,
+    CategoryDetailView,
+)
 
 app_name = 'hotel_app'
 
@@ -16,7 +21,15 @@ urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name="checkout"),
     path('get_current_checked_in_rooms/',
          CheckedInView.as_view(), name="checked_in_rooms"),
-    path('room-display-images/', RoomDisplayImagesListView.as_view(), name='room_display_images_list'),
-    path('room-display-images/<int:room_id>/', RoomDisplayImagesByRoomView.as_view(), name='room_display_images_by_room'),
+    path('room-display-images/', RoomDisplayImagesListView.as_view(),
+         name='room_display_images_list'),
+    path('room-display-images/<int:room_id>/',
+         RoomDisplayImagesByRoomView.as_view(), name='room_display_images_by_room'),
+
+
+    # category list and detail
+    path('categories/', CategoryListView.as_view(), name='category-list'),
+    path('categories/<slug:slug>/',
+         CategoryDetailView.as_view(), name='category-detail'),
 
 ]
