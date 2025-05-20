@@ -1,7 +1,24 @@
 from tabnanny import verbose
 from django.db import models
-
+from django.utils.text import slugify
 from accounts.models import User
+
+# List of models
+# Category
+# Room
+# Customer
+# Booking
+# Payment
+# CheckIn
+# CheckOut
+# RoomDisplayImages
+
+
+
+
+def category_image_upload_path(instance, filename):
+    return f"categories/{instance.slug}/{filename}"
+
 
 # -------------------------------
 # Category Model
@@ -9,9 +26,25 @@ from accounts.models import User
 # -------------------------------
 class Category(models.Model):
     name = models.CharField(max_length=30,verbose_name='دسته بندی')
-
+    slug = models.SlugField(unique=True, blank=True,verbose_name='اسلاگ')
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='subcategories',
+        null=True,
+        blank=True,
+        verbose_name='والد'
+    )
+    image = models.ImageField(upload_to=category_image_upload_path, null=True, blank=True,verbose_name='تصویر')
+    
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+    
     class Meta:
         verbose_name = "دسته بندی"
         verbose_name_plural = "دسته بندی ها"
@@ -19,11 +52,17 @@ class Category(models.Model):
 
 
 
-
+# -------------------------------
+# Room Images Upload Path
+# This function returns the path for uploading room images.
+# -------------------------------
 def room_images_upload_path(instance, file_name):
     return f"{instance.room_slug}/room_cover/{file_name}"
 
-
+# -------------------------------
+# Room Display Images Upload Path
+# This function returns the path for uploading room display images.
+# -------------------------------
 def room_display_images_upload_path(instance, file_name):
     return f"{instance.room.room_slug}/room_display/{file_name}"
 
