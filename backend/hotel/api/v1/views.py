@@ -28,7 +28,7 @@ def getRoutes(request):
 class RoomView(ListAPIView):
     serializer_class = RoomSerializer
     queryset = Room.objects.order_by('-id')
-
+    
 
 class RoomDetailView(RetrieveAPIView):
     serializer_class = RoomSerializer
