@@ -1,14 +1,17 @@
+from tabnanny import verbose
 from django.db import models
 
 from accounts.models import User
 
-
+# Category Model
 class Category(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30,verbose_name='دسته بندی')
 
     def __str__(self):
         return self.name
-
+    class Meta:
+        verbose_name = "دسته بندی"
+        verbose_name_plural = "دسته بندی ها"
 
 def room_images_upload_path(instance, file_name):
     return f"{instance.room_slug}/room_cover/{file_name}"
@@ -64,7 +67,9 @@ class Customer(models.Model):
 
     def __str__(self):
         return self.customer.username
-
+    class Meta:
+        verbose_name = "مشتری"
+        verbose_name_plural = "مشتری ها"
 
 class Booking(models.Model):
     customer = models.ForeignKey(User, on_delete=models.CASCADE)

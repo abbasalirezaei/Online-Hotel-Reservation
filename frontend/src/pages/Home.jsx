@@ -41,7 +41,7 @@ export default function Home() {
 
                     {sortedRooms ? (
                         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                            {sortedRooms.slice(0, 3).map((room, index) => (
+                            {sortedRooms.slice(0, 4).map((room, index) => (
                                 <RoomItem key={index} room={room} />
                             ))}
                         </div>
@@ -100,7 +100,7 @@ export default function Home() {
 
                     {sortedRooms ? (
                         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                            {sortedRooms.slice(0, 3).map((room, index) => (
+                            {sortedRooms.slice(0, 4).map((room, index) => (
                                 <RoomItem key={index} room={room} />
                             ))}
                         </div>

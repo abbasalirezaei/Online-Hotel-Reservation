@@ -1,4 +1,4 @@
-from hotel.models import Room, Booking, CheckIn
+from hotel.models import Room, Booking, CheckIn,RoomDisplayImages
 from rest_framework import serializers
 
 
@@ -13,6 +13,14 @@ class RoomSerializer(serializers.ModelSerializer):
         return super().create(self.category_name)
 
 
+
+
+class RoomDisplayImagesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoomDisplayImages
+        fields = ['id', 'room', 'display_images']
+        
+        
 class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking

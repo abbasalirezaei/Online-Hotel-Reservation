@@ -7,8 +7,8 @@ from rest_framework.response import Response
 from rest_framework import status
 
 
-from hotel.models import Room, Booking, CheckIn
-from .serializers import RoomSerializer, BookingSerializer, CheckinSerializer
+from hotel.models import Room, Booking, CheckIn, RoomDisplayImages
+from .serializers import RoomSerializer, BookingSerializer, CheckinSerializer, RoomDisplayImagesSerializer
 
 
 @api_view(['GET'])
@@ -19,7 +19,8 @@ def getRoutes(request):
         '/book/',
         '/checkout/',
         '/get_current_checked_in_rooms/',
-
+        '/room-display-images/',
+        '/room-display-images/<int:room_id>/',  
 
     ]
     return Response(routes)
@@ -28,7 +29,17 @@ def getRoutes(request):
 class RoomView(ListAPIView):
     serializer_class = RoomSerializer
     queryset = Room.objects.order_by('-id')
-    
+
+class RoomDisplayImagesListView(ListAPIView):
+    queryset = RoomDisplayImages.objects.all()
+    serializer_class = RoomDisplayImagesSerializer
+
+class RoomDisplayImagesByRoomView(ListAPIView):
+    serializer_class = RoomDisplayImagesSerializer
+
+    def get_queryset(self):
+        room_id = self.kwargs['room_id']
+        return RoomDisplayImages.objects.filter(room_id=room_id)    
 
 class RoomDetailView(RetrieveAPIView):
     serializer_class = RoomSerializer

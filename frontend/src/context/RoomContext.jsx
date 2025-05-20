@@ -10,6 +10,7 @@ export default RoomContext
 export const RoomProvider = ({ children }) => {
     const baseURL = "http://127.0.0.1:8000";
     const [rooms, setRooms] = useState([])
+    const [roomImages, setRoomImages] = useState([])
     const [sortedRooms, setRortedRooms] = useState([])
     const [featuredRooms, setFeaturedRooms] = useState([])
     const [checkedInRooms, setCheckedInRooms] = useState([])
@@ -30,6 +31,12 @@ export const RoomProvider = ({ children }) => {
     useEffect(() => {
         async function fetchData() {
             try {
+                // get images list
+                const imagesResponse = await axios.get(baseURL + "/hotel/api/v1/room-display-images/");
+                setRoomImages(imagesResponse.data);
+
+
+                // get room list
                 const response = await axios.get(baseURL + "/hotel/api/v1/get_room_list/");
                 const featured = response.data.filter((room) => room.featured);
                 const minPrice = parseInt(Math.min(...getUniqueValues(response.data, "price_per_night")));
@@ -71,7 +78,9 @@ export const RoomProvider = ({ children }) => {
         setPricePerNight,
         maxPrice,
         minPrice,
-    }
+        roomImages,
+        setRoomImages,
+        }
 
     return (
         <RoomContext.Provider value={contextData}>
