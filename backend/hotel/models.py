@@ -1,9 +1,9 @@
 from tabnanny import verbose
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 from accounts.models import User
 from django.core.validators import RegexValidator
-
 
 # List of models
 # Category
@@ -117,7 +117,7 @@ class Room(models.Model):
 # This model stores information about each customer, including their username and email.
 # -------------------------------
 class Customer(models.Model):
-    customer = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    customer = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer')
     phone_regex = RegexValidator(
         regex=r'^\+?1?\d{9,14}$',
         message="شماره تلفن باید با فرمت صحیح وارد شود. مثل: +989121234567"

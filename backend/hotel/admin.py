@@ -136,8 +136,26 @@ class CategoryAdmin(admin.ModelAdmin):
         return qs.select_related('parent')
 
 
-# Admin Customer
-admin.site.register(Customer)
+
+
+@admin.register(Customer)
+class CustomerAdmin(admin.ModelAdmin):
+    list_display = ('customer', 'phone_number', 'national_id', 'date_of_birth', 'created_at', 'updated_at')
+    search_fields = ('customer__username', 'phone_number', 'national_id', 'address')
+    list_filter = ('created_at', 'updated_at', 'date_of_birth')
+    readonly_fields = ('created_at', 'updated_at')
+
+    fieldsets = (
+        (None, {
+            'fields': ('customer', 'phone_number', 'address', 'national_id', 'date_of_birth')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+
 admin.site.register(Booking)
 admin.site.register(Payment)
 admin.site.register(CheckIn)
