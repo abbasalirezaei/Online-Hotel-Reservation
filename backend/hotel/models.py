@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from accounts.models import User
 from django.core.validators import RegexValidator
-
+    
 # List of models
 # Category
 # Room
@@ -163,20 +163,35 @@ class Booking(models.Model):
     ('cash', 'نقدی'),
     ('card', 'کارت'),
 ]
-    customer = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_bookings')
+    # booking information
     room = models.ForeignKey('Room', on_delete=models.CASCADE,related_name='room_bookings')
+
+    # customer information
+    customer = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_bookings')
+    phone_number = models.CharField(max_length=14, null=True)
+    email = models.EmailField()
+    
+    # payment status
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='online')
+    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS, default='pending')
+    transaction_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="کد پیگیری پرداخت")
+    
+    # booking status
+    booking_status = models.CharField(max_length=10, choices=BOOKING_STATUS, default='pending')
+
+
+    # important date
+    cancelled_at = models.DateTimeField(null=True, blank=True, verbose_name="تاریخ لغو رزرو")
     booking_date = models.DateTimeField(auto_now_add=True)
     checking_date = models.DateTimeField(blank=True, null=True)
     checkout_date = models.DateTimeField(null=True, blank=True)
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='online')
-    booking_status = models.CharField(max_length=10, choices=BOOKING_STATUS, default='pending')
+    
+    # prices
     nights = models.PositiveIntegerField(default=1, verbose_name="تعداد شب اقامت")
     total_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='قیمت نهایی')
-    transaction_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="کد پیگیری پرداخت")
-    cancelled_at = models.DateTimeField(null=True, blank=True, verbose_name="تاریخ لغو رزرو")
-    # information
-    phone_number = models.CharField(max_length=14, null=True)
-    email = models.EmailField()
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # gustes 
     guests_count = models.PositiveIntegerField(default=1)
     guest_note = models.TextField(blank=True, null=True)
     
@@ -194,8 +209,25 @@ class Booking(models.Model):
         if self.checking_date and self.checkout_date:
             return (self.checkout_date - self.checking_date).days
         return self.nights
-    
-    
+
+class Coupon(models.Model):
+    code = models.CharField(max_length=20, unique=True, verbose_name="کد تخفیف")
+    discount_percent = models.PositiveIntegerField(verbose_name="درصد تخفیف")
+    valid_from = models.DateTimeField(verbose_name="شروع اعتبار")
+    valid_to = models.DateTimeField(verbose_name="پایان اعتبار")
+    active = models.BooleanField(default=True, verbose_name="فعال")
+
+    def is_valid(self):
+        now = timezone.now()
+        return self.active and self.valid_from <= now <= self.valid_to
+
+    def __str__(self):
+        return self.code
+
+    class Meta:
+        verbose_name = "کد تخفیف"
+        verbose_name_plural = "کدهای تخفیف"
+
     
 # -------------------------------
 # Payment Model

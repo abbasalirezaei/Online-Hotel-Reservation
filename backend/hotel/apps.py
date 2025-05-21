@@ -6,3 +6,6 @@ class HotelConfig(AppConfig):
     name = 'hotel'
     verbose_name = "اتاق"
     verbose_name_plural = "اتاق ها"
+    
+    def ready(self):
+        import hotel.signals  # جستجوی فایل signals.py  
