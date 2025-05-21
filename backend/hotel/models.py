@@ -164,20 +164,20 @@ class Booking(models.Model):
     ('card', 'کارت'),
 ]
     # booking information
-    room = models.ForeignKey('Room', on_delete=models.CASCADE,related_name='room_bookings')
+    room = models.ForeignKey('Room', on_delete=models.CASCADE,related_name='room_bookings',verbose_name='اتاق')
 
     # customer information
-    customer = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_bookings')
-    phone_number = models.CharField(max_length=14, null=True)
-    email = models.EmailField()
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE,related_name='user_bookings',verbose_name='مشتری')
+    phone_number = models.CharField(max_length=14, null=True,verbose_name='شماره تلفن')
+    email = models.EmailField(verbose_name='ایمیل')
     
     # payment status
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='online')
-    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS, default='pending')
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='online',verbose_name='روش پرداخت')
+    payment_status = models.CharField(max_length=10, choices=PAYMENT_STATUS, default='pending',verbose_name='وضعیت پرداخت')
     transaction_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="کد پیگیری پرداخت")
     
     # booking status
-    booking_status = models.CharField(max_length=10, choices=BOOKING_STATUS, default='pending')
+    booking_status = models.CharField(max_length=10, choices=BOOKING_STATUS, default='pending',verbose_name='وضعیت رزرو')
 
 
     # important date
@@ -185,18 +185,19 @@ class Booking(models.Model):
     booking_date = models.DateTimeField(auto_now_add=True)
     checking_date = models.DateTimeField(blank=True, null=True)
     checkout_date = models.DateTimeField(null=True, blank=True)
-    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     # prices
     nights = models.PositiveIntegerField(default=1, verbose_name="تعداد شب اقامت")
     total_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='قیمت نهایی')
-    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True)
+    coupon = models.ForeignKey('Coupon', on_delete=models.SET_NULL, null=True, blank=True,verbose_name='کد تخفیف')
     
     # gustes 
-    guests_count = models.PositiveIntegerField(default=1)
-    guest_note = models.TextField(blank=True, null=True)
+    guests_count = models.PositiveIntegerField(default=1,verbose_name='تعداد مهمان')
+    guest_note = models.TextField(blank=True, null=True,verbose_name='توضیحات مهمان')
     
     def __str__(self):
-        return self.customer.username
+        return self.customer.customer.username
     class Meta:
         verbose_name = "رزرو"
         verbose_name_plural = "رزرو ها"
@@ -209,6 +210,12 @@ class Booking(models.Model):
         if self.checking_date and self.checkout_date:
             return (self.checkout_date - self.checking_date).days
         return self.nights
+    @property
+    def calculate_total_price(self):
+        base_price = self.room.price_per_night
+        discount = self.coupon.discount_percent if self.coupon else 0
+        total_price = base_price * self.nights * (1 - discount / 100)
+        return total_price
 
 class Coupon(models.Model):
     code = models.CharField(max_length=20, unique=True, verbose_name="کد تخفیف")

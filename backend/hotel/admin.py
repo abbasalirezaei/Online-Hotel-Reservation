@@ -136,12 +136,12 @@ class CategoryAdmin(admin.ModelAdmin):
         return qs.select_related('parent')
 
 
-
-
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ('customer', 'phone_number', 'national_id', 'date_of_birth', 'created_at', 'updated_at')
-    search_fields = ('customer__username', 'phone_number', 'national_id', 'address')
+    list_display = ('customer', 'phone_number', 'national_id',
+                    'date_of_birth', 'created_at', 'updated_at')
+    search_fields = ('customer__username', 'phone_number',
+                     'national_id', 'address')
     list_filter = ('created_at', 'updated_at', 'date_of_birth')
     readonly_fields = ('created_at', 'updated_at')
 
@@ -154,9 +154,37 @@ class CustomerAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
-    
 
-admin.site.register(Booking)
+@admin.register(Booking)
+class BookingAdmin(admin.ModelAdmin):
+    list_display = (
+        'customer_username', 'room', 'checking_date', 'checkout_date', 'nights', 'total_price', 'booking_status',
+    )
+    list_filter = (
+        'customer', 'room',
+        'booking_status',
+        'payment_status',
+    )
+    list_display_links = ('customer_username', 'room')
+    search_fields = ('customer__customer__username', 'room__title', 'coupon__code')
+    readonly_fields = ('guest_note','created_at', 'updated_at','customer','room')
+    fieldsets = (
+        (None, {
+            'fields': ('customer', 'room', 'nights', 'total_price', 'booking_status', 
+                       'cancelled_at', 'guest_note', 'guests_count', 'payment_method', 'payment_status', 'coupon')
+        }),
+        ('Timestamps', {
+            'fields': ('checking_date', 'checkout_date','created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def customer_username(self, obj):
+        return obj.customer.customer.username
+    customer_username.short_description = 'کاربر'
+
+
+
 admin.site.register(Payment)
 admin.site.register(CheckIn)
 admin.site.register(CheckOut)
