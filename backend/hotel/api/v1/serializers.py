@@ -86,14 +86,27 @@ class BookingSerializer(serializers.ModelSerializer):
     """
     Booking Model Serializer
     ----------------------
-    This serializer handles booking data serialization, including:
-    - Booking ID
-    - Customer ID
-    - Room ID
-    - Booking date
-    - Check-in date
-    - Check-out date
-    - Total price
+    This serializer handles booking data serialization, including all fields from the Booking model such as:
+    - booking_id
+    - customer (foreign key to Customer)
+    - room (foreign key to Room)
+    - phone_number
+    - email
+    - payment_method
+    - payment_status
+    - transaction_id
+    - booking_status
+    - cancelled_at
+    - booking_date
+    - checking_date
+    - checkout_date
+    - created_at
+    - updated_at
+    - nights
+    - total_price
+    - coupon
+    - guests_count
+    - guest_note
     
     Used for:
     - Creating new bookings
@@ -101,10 +114,20 @@ class BookingSerializer(serializers.ModelSerializer):
     - Listing all bookings
     - Retrieving single booking details
     """
+    
     class Meta:
         model = Booking
         fields = '__all__'
-
+        read_only_fields = ['booking_date', 'created_at', 'updated_at']
+    
+    def validate(self, data):
+        """
+        Validate that the check-out date is after the check-in date.
+        """
+        if data['checking_date'] >= data['checkout_date']:
+            raise serializers.ValidationError("Check-out date must be after check-in date.")
+        return data
+    
 # Checkin serializer
 class CheckinSerializer(serializers.ModelSerializer):
     """

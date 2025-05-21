@@ -216,7 +216,12 @@ class Booking(models.Model):
         discount = self.coupon.discount_percent if self.coupon else 0
         total_price = base_price * self.nights * (1 - discount / 100)
         return total_price
-
+    def is_available(self, check_in, check_out):
+        return not Booking.objects.filter(
+            room=self,
+            check_in_date__lt=check_out,
+            check_out_date__gt=check_in
+        ).exists()
 class Coupon(models.Model):
     code = models.CharField(max_length=20, unique=True, verbose_name="کد تخفیف")
     discount_percent = models.PositiveIntegerField(verbose_name="درصد تخفیف")

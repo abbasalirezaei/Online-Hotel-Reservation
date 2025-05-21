@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
-
+from django.db import transaction
 
 from hotel.models import (
     Category,
@@ -52,24 +52,24 @@ class RoomView(ListAPIView):
         return queryset
 
 
-
 class RoomDetailView(RetrieveAPIView):
     serializer_class = RoomSerializer
     queryset = Room.objects.all()
     lookup_field = 'room_slug'
 
 
-# 
+#
 class CategoryListView(ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    
-    
+
+
 # Retrieve details of a single category
 class CategoryDetailView(RetrieveAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     lookup_field = 'slug'  # or 'pk' if you're using IDs
+
 
 class RoomDisplayImagesListView(ListAPIView):
     queryset = RoomDisplayImages.objects.all()
@@ -84,13 +84,13 @@ class RoomDisplayImagesByRoomView(ListAPIView):
         return RoomDisplayImages.objects.filter(room_id=room_id)
 
 
-
 class BookingCreateApiView(CreateAPIView):
     # permission_classes = (IsAuthenticated, )
     serializer_class = BookingSerializer
     queryset = Booking.objects.all()
 
     def create(self, request, *args, **kwargs):
+        # این متد بدون تغییر می‌ماند
         response = {}
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -101,20 +101,55 @@ class BookingCreateApiView(CreateAPIView):
         return Response(response, status=status.HTTP_201_CREATED, headers=headers)
 
     def post(self, request, *args, **kwargs):
-        room = get_object_or_404(Room, pk=request.data['room'])
-        if room.is_booked:
-            return Response({"response": "Room is already booked"}, status=status.HTTP_200_OK)
-        room.is_booked = True
-        room.save()
+        
+        
+        try:
+            
+            # zero checking for necessary data
+            room_id = request.data.get('room')
+            check_in = request.data['checking_date']
+            check_out = request.data['checkout_date']
+            if not room_id or not check_in or not check_out:
+                return Response({"message": "اطلاعات اتاق، تاریخ ورود و خروج الزامی است"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            
+            # FIRST getting room
+            room = get_object_or_404(Room, pk=room_id)
+            # checking if room is available
+            if not room.is_available(check_in, check_out):
+                return Response({"response": "Room is already booked"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # SECOND getting customer and checking if customer exists
+            try:
+                customer = Customer.objects.get(customer=request.user)
+            except Customer.DoesNotExist:
+                return Response({"response": "Customer profile not found for this user"}, 
+                               status=status.HTTP_400_BAD_REQUEST)
+            
+            # THIRD adding customer id to request data
+            request.data['customer'] = customer.id
+            
+            # FOURTH using transaction to ensure data consistency
+            with transaction.atomic():
+                # FIFTH marking room as booked
+                room.is_booked = True
+                room.save()
+                
+                # SIXTH creating CheckIn record
+                checked_in_room = CheckIn.objects.create(
+                    customer=request.user,
+                    room=room,
+                    phone_number=request.data.get('phone_number', ''),
+                    email=request.data.get('email', '')
+                )
+                
+                # SEVENTH calling create method to create Booking
+                return self.create(request, *args, **kwargs)
+                
+        except Exception as e:
+            return Response({"response": f"An error occurred: {str(e)}"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
 
-        checked_in_room = CheckIn.objects.create(
-            customer=request.user,
-            room=room,
-            phone_number=request.data['phone_number'],
-            email=request.data['email']
-        )
-        checked_in_room.save()
-        return self.create(request, *args, **kwargs)
 
 
 class CheckoutView(APIView):
