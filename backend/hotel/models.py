@@ -144,21 +144,59 @@ class Customer(models.Model):
 # Booking Model
 # This model stores information about each booking, including the customer, room, booking date, checking date, and checkout date.
 # -------------------------------
+
 class Booking(models.Model):
-    customer = models.ForeignKey(User, on_delete=models.CASCADE)
-    room = models.ForeignKey('Room', on_delete=models.CASCADE)
+    PAYMENT_STATUS = [
+        ('pending', 'در انتظار پرداخت'),
+        ('paid', 'پرداخت شده'),
+        ('cancelled', 'لغو شده'),
+    ]
+    BOOKING_STATUS = [
+    ('pending', 'در انتظار تایید'),
+    ('confirmed', 'تایید شده'),
+    ('cancelled', 'لغو شده'),
+    ('completed', 'تکمیل شده'),
+    ('no_show', 'عدم حضور'),
+]
+    PAYMENT_METHODS = [
+    ('online', 'آنلاین'),
+    ('cash', 'نقدی'),
+    ('card', 'کارت'),
+]
+    customer = models.ForeignKey(User, on_delete=models.CASCADE,related_name='user_bookings')
+    room = models.ForeignKey('Room', on_delete=models.CASCADE,related_name='room_bookings')
     booking_date = models.DateTimeField(auto_now_add=True)
     checking_date = models.DateTimeField(blank=True, null=True)
     checkout_date = models.DateTimeField(null=True, blank=True)
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='online')
+    booking_status = models.CharField(max_length=10, choices=BOOKING_STATUS, default='pending')
+    nights = models.PositiveIntegerField(default=1, verbose_name="تعداد شب اقامت")
+    total_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='قیمت نهایی')
+    transaction_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="کد پیگیری پرداخت")
+    cancelled_at = models.DateTimeField(null=True, blank=True, verbose_name="تاریخ لغو رزرو")
+    # information
     phone_number = models.CharField(max_length=14, null=True)
     email = models.EmailField()
-
+    guests_count = models.PositiveIntegerField(default=1)
+    guest_note = models.TextField(blank=True, null=True)
+    
     def __str__(self):
         return self.customer.username
     class Meta:
         verbose_name = "رزرو"
         verbose_name_plural = "رزرو ها"
-
+        indexes = [
+            models.Index(fields=['customer']),
+            models.Index(fields=['room']),
+        ]
+    @property
+    def calculated_nights(self):
+        if self.checking_date and self.checkout_date:
+            return (self.checkout_date - self.checking_date).days
+        return self.nights
+    
+    
+    
 # -------------------------------
 # Payment Model
 # This model stores information about each payment, including the customer.
@@ -171,7 +209,9 @@ class Payment(models.Model):
     class Meta:
         verbose_name = "پرداخت"
         verbose_name_plural = "پرداخت ها"   
-
+        indexes = [
+            models.Index(fields=['customer']),
+        ]
 # -------------------------------
 # CheckIn Model
 # This model stores information about each check-in, including the customer and room.
@@ -187,7 +227,10 @@ class CheckIn(models.Model):
     class Meta:
         verbose_name = "چکین"
         verbose_name_plural = "چکین ها"
-
+        indexes = [
+            models.Index(fields=['customer']),
+            models.Index(fields=['room']),
+        ]
 # -------------------------------
 # CheckOut Model
 # This model stores information about each check-out, including the customer and check-out date.
@@ -201,7 +244,9 @@ class CheckOut(models.Model):
     class Meta:
         verbose_name = "چک آوت"
         verbose_name_plural = "چک آوت ها"
-
+        indexes = [
+            models.Index(fields=['customer']),
+        ]
 # -------------------------------
 # RoomDisplayImages Model
 # This model stores information about each room display image, including the room and display image.
@@ -216,3 +261,6 @@ class RoomDisplayImages(models.Model):
     class Meta:
         verbose_name = "عکس اتاق"
         verbose_name_plural = "عکس اتاق ها"
+        indexes = [
+            models.Index(fields=['room']),
+        ]
