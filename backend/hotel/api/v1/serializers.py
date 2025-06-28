@@ -134,7 +134,8 @@ class RoomImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RoomImage
-        fields = ['id', 'image', 'hotel', 'image_url', 'caption']
+        fields = ['id', 'image', 'image_url', 'caption']
+        read_only_fields = ['image_url']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -142,19 +143,46 @@ class RoomImageSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
+
 # Room Lists
-
-
 class RoomListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Room
         fields = [
-            'id',  'hotel', 'title', 'slug',  'room_type','main_image'
+            'id',  'hotel', 'title', 'slug',  'room_type', 'main_image'
 
         ]
         read_only_fields = ['hotel',]
 
+
+# Room Lists
+class RoomDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Room
+        fields = [
+            "hotel",
+            "room_type",
+            "occupancy",
+            "title",
+            "slug",
+            "guests_count",
+            "room_details",
+            "has_balcony",
+            "has_air_conditioning",
+            "has_tv",
+            "pets",
+            "price_per_night",
+            "capacity",
+            "floor",
+            "is_available",
+            "rating",
+            "main_image",
+            "created_at",
+            "updated_at",
+
+        ]
 
 class RoomCreateSerializer(serializers.ModelSerializer):
 

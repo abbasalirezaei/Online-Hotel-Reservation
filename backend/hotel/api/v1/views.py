@@ -13,7 +13,9 @@ from rest_framework.exceptions import ValidationError
 
 from reservations.models import Reservation
 from .permissions import IsHotelOwner
-from hotel.models import Hotel, Room, HotelLocation
+from hotel.models import (
+    Hotel, Room, HotelLocation, RoomImage
+)
 from .serializers import (
     HotelListSerializer,
     HotelDetailSerializer,
@@ -22,6 +24,8 @@ from .serializers import (
 
     RoomCreateSerializer,
     RoomListSerializer,
+    RoomImageSerializer,
+    RoomDetailSerializer,
 )
 
 
@@ -30,27 +34,34 @@ from .serializers import (
 @api_view(['GET'])
 def getRoutes(request):
     routes = [
+
         'hotels/',
         'hotels/<int:pk>/',
         'hotels/create/',
-        'hotels/<int:pk>/edit/',
-        'rooms/create/',
-        'rooms/<int:pk>/',
-        'rooms/<int:pk>/edit/',
+        'hotels/<int:hotel_id>/locations/',
+        'hotels/<int:hotel_id>/rooms/',
+        'hotels/rooms/<slug:slug>/',
+        'hotels/<int:hotel_id>/rooms/create/',
+        'hotels/rooms/<int:room_id>/images/'
 
     ]
     return Response(routes)
 
+
+'''
+|==================================================|
+|--------------- Hotels Views    ------------------|
+|==================================================|
+'''
+
+
 # hotel lists
-
-
 class HotelListAPIView(generics.ListAPIView):
     queryset = Hotel.verified.all()
     serializer_class = HotelListSerializer
 
+
 # hotel detail
-
-
 class HotelDetailAPIView(generics.RetrieveAPIView):
     queryset = Hotel.verified.all()
     serializer_class = HotelDetailSerializer
@@ -81,6 +92,14 @@ class HotelLocationCreateAPIView(generics.ListCreateAPIView):
         serializer.save(hotel=hotel)
 
 
+'''
+|==================================================|
+|--------------- Rooms Views     ------------------|
+|==================================================|
+'''
+
+
+# room list
 class RoomListAPIView(generics.ListAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomListSerializer
@@ -91,6 +110,7 @@ class RoomListAPIView(generics.ListAPIView):
         return qs
 
 
+# room create
 class RoomCreateAPIView(generics.CreateAPIView):
     queryset = Room.objects.all()
     serializer_class = RoomCreateSerializer
@@ -103,35 +123,27 @@ class RoomCreateAPIView(generics.CreateAPIView):
         serializer.save(hotel=hotel)
 
 
-# class RoomUpdateAPIView(generics.UpdateAPIView):
-#     queryset = Room.objects.all()
-#     serializer_class = RoomSerializer
-#     permission_classes = [IsAuthenticated, IsHotelOwner]
+# room detail
+class RoomDetailAPIView(generics.RetrieveAPIView):
+    queryset = Room.objects.all()
+    serializer_class = RoomDetailSerializer
+    lookup_field = "slug"
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        room_slug = self.kwargs["slug"]
+        qs = Room.objects.filter(slug=room_slug)
+        return qs
 
 
-# class RoomDetailAPIView(generics.RetrieveAPIView):
-#     queryset = Room.objects.all()
-#     serializer_class = RoomSerializer
+# room images
+class RoomImageCreateAPIView(generics.ListCreateAPIView):
+    queryset = RoomImage.objects.all()
+    serializer_class = RoomImageSerializer
+    permission_classes = [IsAuthenticated, IsHotelOwner]
 
+    def perform_create(self, serializer):
+        room = get_object_or_404(
+            Room, id=self.kwargs['room_id'])
 
-# class HotelRoomsAPIView(APIView):
-#     def get(self, request, hotel_id):
-#         rooms = Room.objects.filter(hotel_id=hotel_id)
-#         serializer = RoomSerializer(rooms, many=True)
-#         return Response(serializer.data)
-
-
-@api_view(['GET'])
-def check_room_availability(request, id):
-    checkin = request.GET.get('checkin')
-    checkout = request.GET.get('checkout')
-    checkin_date = parse_date(checkin)
-    checkout_date = parse_date(checkout)
-
-    is_reserved = Reservation.objects.filter(
-        room_id=id,
-        checking_date__lt=checkout_date,
-        checkout_date__gt=checkin_date
-    ).exists()
-
-    return Response({"available": not is_reserved})
+        serializer.save(room=room)
