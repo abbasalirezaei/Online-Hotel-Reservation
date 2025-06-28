@@ -1,119 +1,124 @@
-import React, { useContext, useEffect, useState } from 'react'
-
-import { Link, useParams } from 'react-router-dom'
-import RoomContext from '../../context/RoomContext.jsx'
-
+import React, { useContext, useState, useEffect } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import RoomContext from '../../context/RoomContext.jsx';
 
 export default function RoomDetail() {
-    const { room_slug } = useParams()
+    const { room_slug } = useParams();
+    const { rooms, roomImages } = useContext(RoomContext);
+    const room = rooms?.find((r) => r.room_slug === room_slug);
 
-    const { rooms } = useContext(RoomContext);
-    // const [room, setRoom] = useState({})
-    
-    const room = rooms?.find(
-        (room) => room.room_slug === room_slug
-    );
+    const images = room && roomImages
+        ? roomImages.filter((img) => img.room === room.id)
+        : [];
 
-    // rooms?.find(
-    //     (room) => room.room_slug === room_slug
-    // )
+    const [mainImage, setMainImage] = useState(room?.cover_image);
+    useEffect(() => {
+        setMainImage(room?.cover_image);
+    }, [room?.cover_image]);
+
+    const formatPrice = (price) =>
+        price ? Number(price).toLocaleString() + ' تومان' : '-';
+
+    if (!room) return <div className="text-center py-10 text-gray-500">اتاق پیدا نشد</div>;
 
     return (
-        <div>
+        <div dir="rtl" className="bg-white text-gray-800 min-h-screen py-10 px-6">
+            <div className="max-w-4xl mx-auto space-y-10">
 
-            <div >
-                <section class="overflow-hidden bg-white py-11 font-poppins dark:bg-gray-800">
-                    <div class="max-w-6xl px-4 py-4 mx-auto lg:py-8 md:px-6">
-
-
-                        <div class="flex flex-wrap -mx-4">
-
-
-                            <div class="w-full px-4 md:w-1/2 ">
-                                <div class="sticky top-0 z-50 overflow-hidden ">
-                                    <div class="relative mb-6 lg:mb-10 lg:h-2/4 ">
-                                        <img src={room?.cover_image} alt=""
-                                            class="object-cover w-full lg:h-full " />
-                                    </div>
-                                    <div class="flex-wrap hidden md:flex ">
-                                        <div class="w-1/2 p-2 sm:w-1/4">
-                                            <a href="#"
-                                                class="block border border-blue-300 dark:border-transparent dark:hover:border-blue-300 hover:border-blue-300">
-                                                <img src="https://i.postimg.cc/PqYpFTfy/pexels-melvin-buezo-2529148.jpg" alt=""
-                                                    class="object-cover w-full lg:h-20" />
-                                            </a>
-                                        </div>
-                                        <div class="w-1/2 p-2 sm:w-1/4">
-                                            <a href="#"
-                                                class="block border border-transparent dark:border-transparent dark:hover:border-blue-300 hover:border-blue-300">
-                                                <img src="https://i.postimg.cc/PqYpFTfy/pexels-melvin-buezo-2529148.jpg" alt=""
-                                                    class="object-cover w-full lg:h-20" />
-                                            </a>
-                                        </div>
-                                        <div class="w-1/2 p-2 sm:w-1/4">
-                                            <a href="#"
-                                                class="block border border-transparent dark:border-transparent dark:hover:border-blue-300 hover:border-blue-300">
-                                                <img src="https://i.postimg.cc/PqYpFTfy/pexels-melvin-buezo-2529148.jpg" alt=""
-                                                    class="object-cover w-full lg:h-20" />
-                                            </a>
-                                        </div>
-                                        <div class="w-1/2 p-2 sm:w-1/4">
-                                            <a href="#"
-                                                class="block border border-transparent dark:border-transparent dark:hover:border-blue-300 hover:border-blue-300">
-                                                <img src="https://i.postimg.cc/PqYpFTfy/pexels-melvin-buezo-2529148.jpg" alt=""
-                                                    class="object-cover w-full lg:h-20" />
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            <div class="w-full px-4 md:w-1/2 ">
-                                <div class="lg:pl-20">
-                                    <div class="mb-8 ">
-
-                                        <h2 class="max-w-xl mt-2 mb-6 text-2xl font-bold dark:text-gray-400 md:text-4xl">
-                                            {room?.title}
-                                        </h2>
-
-                                        <p class="max-w-md mb-8 text-gray-700 dark:text-gray-400">
-                                            {room?.description}
-                                        </p>
-                                        <p class="inline-block mb-8 text-4xl font-bold text-gray-700 dark:text-gray-400 ">
-                                            <span>${room?.price_per_night}</span>
-                                            <span
-                                                class="text-base font-normal text-gray-500 line-through dark:text-gray-400">$1500.99</span>
-                                        </p>
-                                        <p class="text-green-600 dark:text-green-300 ">
-                                            {room?.is_booked ? (
-                                                <p className="lead btn btn-danger btn-lg">Reserved</p>
-                                            ) : (
-                                                <p className="lead">
-
-                                                    <Link
-                                                        to={{
-                                                            pathname: `/book/${room?.room_slug}`,
-                                                            state: { room },
-                                                        }}
-                                                        className="btn btn-primary btn-sm"
-                                                        role="button"
-                                                    >
-                                                        Book Room
-                                                    </Link>
-
-                                                </p>
-                                            )}
-                                        </p>
-                                    </div>
-
-
-                                </div>
-                            </div>
-                        </div>
+                {/* Title & Price */}
+                <div className="space-y-4 border-b pb-6">
+                    <h1 className="text-3xl font-bold">{room.title}</h1>
+                    <div className="text-xl text-amber-700 font-semibold">
+                        {formatPrice(room.price_per_night)}
+                        {room.discount_price && (
+                            <span className="text-red-500 text-base mx-3 line-through">
+                                {formatPrice(room.discount_price)}
+                            </span>
+                        )}
                     </div>
-                </section>
+                    <div className="text-sm text-gray-500">
+                        <span>کد اتاق: {room.room_code || '-'}</span> |{' '}
+                        <span>دسته‌بندی: {room.category_name}</span>
+                    </div>
+                </div>
+
+                {/* Room Quick Info */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-700">
+                    <div>ظرفیت: <b>{room.capacity}</b></div>
+                    <div>تعداد تخت: <b>{room.bed_count}</b></div>
+                    <div>نوع تخت: <b>
+                        {room.bed_type === 'single' ? 'تک نفره' :
+                            room.bed_type === 'double' ? 'دو نفره' :
+                                room.bed_type === 'king' ? 'کینگ' : 'دوتخته جدا'}
+                    </b></div>
+                    <div>طبقه: <b>{room.floor}</b></div>
+                    <div>اندازه: <b>{room.room_size}</b></div>
+                    <div>امتیاز: <b>{room.rating} ⭐</b></div>
+                    <div>بازدید: <b>{room.views}</b></div>
+                    <div>وضعیت: <b className={room.active ? "text-green-600" : "text-red-500"}>{room.active ? "فعال" : "غیرفعال"}</b></div>
+                    <div>حیوان خانگی: <b>{room.pets ? "مجاز" : "مجاز نیست"}</b></div>
+                    <div>صبحانه: <b>{room.breakfast ? "دارد" : "ندارد"}</b></div>
+                </div>
+
+                {/* Images */}
+                <div className="space-y-4">
+                    <img
+                        src={mainImage}
+                        alt="Main room"
+                        className="w-full h-72 object-cover rounded-xl border"
+                    />
+                    <div className="flex gap-2 flex-wrap">
+                        {[room.cover_image, ...images.map(img => img.display_images)].map((imgSrc, idx) => (
+                            <img
+                                key={idx}
+                                src={imgSrc}
+                                onClick={() => setMainImage(imgSrc)}
+                                className={`w-20 h-16 rounded-lg object-cover cursor-pointer border-2 transition-all duration-200
+                                    ${mainImage === imgSrc ? 'border-amber-600' : 'border-gray-200'}`}
+                                alt={`room-thumb-${idx}`}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Description & Amenities */}
+                <div className="space-y-6 text-sm leading-6">
+                    <div>
+                        <h2 className="font-bold text-lg mb-2">توضیحات</h2>
+                        <p className="text-gray-600">{room.description}</p>
+                    </div>
+                    {room.amenities?.length > 0 && (
+                        <div>
+                            <h2 className="font-bold text-lg mb-2">امکانات</h2>
+                            <ul className="list-disc pr-5 text-gray-700">
+                                {room.amenities.map((item, idx) => (
+                                    <li key={idx}>{item}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+
+                {/* Reservation */}
+                <div className="pt-6 border-t">
+                    {room.is_booked ? (
+                        <div className="px-4 py-2 bg-red-100 text-red-600 rounded-lg text-center font-semibold">رزرو شده</div>
+                    ) : (
+                        <Link
+                            to={`/book/${room.room_slug}`}
+                            className="block text-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold"
+                        >
+                            رزرو اتاق
+                        </Link>
+                    )}
+                </div>
+
+                {/* Dates */}
+                <div className="text-xs text-gray-400 text-center mt-8">
+                    <span>ایجاد: {new Date(room.created_at).toLocaleDateString('fa-IR')}</span> |{' '}
+                    <span>ویرایش: {new Date(room.updated_at).toLocaleDateString('fa-IR')}</span>
+                </div>
             </div>
         </div>
-    )
+    );
 }

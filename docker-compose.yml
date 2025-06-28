@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+    command: python manage.py runserver 0.0.0.0:8000  # بدون پارامتر --noreload
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile.dev  # استفاده از داکرفایل جدید برای توسعه
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules        # حفظ node_modules داخل کانتینر
+    ports:
+      - "3000:3000"
+    environment:
+      - WATCHPACK_POLLING=true   # فعال کردن polling برای hot-reload
+      - CHOKIDAR_USEPOLLING=true # برای سیستم‌های لینوکس
+    stdin_open: true  # برای حالت interactive
+    tty: true         # برای حالت interactive
