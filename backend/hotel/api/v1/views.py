@@ -48,3 +48,31 @@ class HotelListCreateView(generics.ListCreateAPIView):
         # Choose appropriate serializer depending on request type
         return HotelCreateSerializer if self.request.method == 'POST' else HotelListSerializer
 
+
+class HotelDetailView(generics.RetrieveAPIView):
+    """
+    Retrieves detailed information for a specific verified hotel by ID.
+    """
+    queryset = Hotel.verified.all()
+    serializer_class = HotelDetailSerializer
+
+
+class HotelLocationView(generics.ListCreateAPIView):
+    """
+    Allows hotel owners to view or create the location of their hotel.
+    Each hotel can have only one location.
+    """
+    serializer_class = HotelLocationSerializer
+    permission_classes = [IsAuthenticated, IsHotelOwner]
+
+    def get_queryset(self):
+        # Only return locations belonging to the requesting user
+        return HotelLocation.objects.filter(hotel__owner=self.request.user)
+
+    def perform_create(self, serializer):
+        # Ensure the hotel belongs to the authenticated user and doesn't already have a location
+        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        if hasattr(hotel, 'location'):
+            raise ValidationError("This hotel already has a location.")
+        serializer.save(hotel=hotel)
+
