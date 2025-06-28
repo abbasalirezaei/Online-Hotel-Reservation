@@ -3,8 +3,9 @@ from django.db import models
 from django.utils.text import slugify
 from .hotel_model import Hotel
 
-
-
+class AvailableRoomManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_available=True).order_by("-created_at")
 
 class Room(models.Model):
     hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name='rooms')
@@ -32,6 +33,11 @@ class Room(models.Model):
     main_image = models.ImageField(upload_to='room/images/main_image/')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Managers
+    objects = models.Manager()  # default manager
+    available = AvailableRoomManager()  # custom manager
+
     def __str__(self):
         return f"{self.title} - {self.hotel.name}"
     

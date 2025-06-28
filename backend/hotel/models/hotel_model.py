@@ -11,8 +11,6 @@ class VerifiedHotelManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_verified=True).order_by("-created_at")
     
-    def recent(self):
-        return self.get_queryset().order_by('-rating')[:5]
 class Hotel(models.Model):
     owner = models.ForeignKey(
         User,
