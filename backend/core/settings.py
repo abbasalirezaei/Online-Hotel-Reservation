@@ -114,7 +114,7 @@ TIME_ZONE = 'Asia/Tehran'
 
 
 USE_TZ = True
-LANGUAGE_CODE = 'fa'
+LANGUAGE_CODE = 'en-us'
 USE_I18N = True
 
 # Static files (CSS, JavaScript, Images)

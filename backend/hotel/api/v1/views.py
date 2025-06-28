@@ -3,18 +3,27 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
 from django.utils.dateparse import parse_date
+from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
 
 
 
 from reservations.models import Reservation
 from .permissions import IsHotelOwner
-from .serializers import HotelSerializer,RoomSerializer
-from hotel.models import Hotel, Room
+from hotel.models import Hotel, Room,HotelLocation
+from .serializers import (
+    HotelListSerializer,
+    HotelDetailSerializer,
+    HotelCreateSerializer,
+    HotelLocationSerializer,
+    
+    RoomSerializer
+)
 
 
 
@@ -34,38 +43,40 @@ def getRoutes(request):
     ]
     return Response(routes)
 
-
 # hotel lists
 class HotelListAPIView(generics.ListAPIView):
     queryset = Hotel.verified.all()
-    serializer_class = HotelSerializer
+    serializer_class = HotelListSerializer
 
 # hotel detail
 class HotelDetailAPIView(generics.RetrieveAPIView):
     queryset = Hotel.verified.all()
-    serializer_class = HotelSerializer
+    serializer_class = HotelDetailSerializer
 
 
 
 #  create hotel by owner
 class HotelCreateAPIView(generics.CreateAPIView):
     queryset = Hotel.objects.all()
-    serializer_class = HotelSerializer
+    serializer_class = HotelCreateSerializer
+
+    permission_classes = [IsAuthenticated, IsHotelOwner]
+
+
+#  create hotel by owner
+class HotelLocationCreateAPIView(generics.ListCreateAPIView):
+    queryset = HotelLocation.objects.all()
+    serializer_class = HotelLocationSerializer
+
     permission_classes = [IsAuthenticated, IsHotelOwner]
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
 
+        if hasattr(hotel, 'location'):
+            raise ValidationError("This hotel already has a location.")
 
-
-class HotelUpdateAPIView(generics.UpdateAPIView):
-    queryset = Hotel.objects.all()
-    serializer_class = HotelSerializer
-    permission_classes = [IsAuthenticated, IsHotelOwner]
-
-    def perform_update(self, serializer):
-        serializer.save(owner=self.request.user)
-
+        serializer.save(hotel=hotel)
 
 
 

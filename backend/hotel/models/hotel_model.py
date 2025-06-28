@@ -31,7 +31,7 @@ class Hotel(models.Model):
     website = models.URLField(blank=True)
 
     is_verified=models.BooleanField(default=False)
-    
+    main_image =models.ImageField(upload_to="hotels/main_images/",blank=True,null=True)
     has_parking = models.BooleanField(default=False)
     policy = models.TextField()
     amenities = models.TextField()
