@@ -11,12 +11,12 @@ urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='auth_register'),
     path('test/', views.testEndPoint, name='test'),
     path("home/",  views.HomeView.as_view()),
+    # path("customer/panel/",  views.CustomerPanelAPIView.as_view()),
     path('', views.getRoutes),
 
     # password rest
     path('password/reset/', views.PasswordResetView.as_view(), name='password_reset'),
     path('password/reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('password/change/', views.ChangePasswordView.as_view(), name='change_password'),
-
     
 ]

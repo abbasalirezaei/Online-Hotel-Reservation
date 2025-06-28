@@ -1,12 +1,7 @@
-
+asgiref==3.7.2
 Django==4.2.5
-
-django-cors-headers==4.3.0
-django-jazzmin==2.6.0
-
-djangorestframework==3.14.0
-djangorestframework-simplejwt==5.3.0
-
+psycopg2-binary==2.9.7
+sqlparse==0.4.4
+typing_extensions==4.8.0
 # delete images from media folder when I remove it from product image
 install django-cleanup
-pip install --upgrade setuptools

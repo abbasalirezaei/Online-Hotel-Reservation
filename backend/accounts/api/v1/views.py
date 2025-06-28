@@ -1,15 +1,15 @@
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 
-
-from rest_framework.permissions import AllowAny ,  IsAuthenticated
-from rest_framework.decorators import permission_classes , api_view
+from rest_framework.permissions import AllowAny,  IsAuthenticated
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.views import APIView
 
 from rest_framework.response import Response
-from rest_framework import generics,status
+from rest_framework import generics, status
 
-
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
@@ -20,21 +20,17 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str
 
 
-
-
-
-from accounts.models import User,Profile
-
+from accounts.models import User
 
 
 from .serializers import (
-	UserSerializer,
-	MyTokenObtainPairSerializer,
-	RegisterSerializer,
-      PasswordResetSerializer, PasswordResetConfirmSerializer
+    UserSerializer,
+    MyTokenObtainPairSerializer,
+    RegisterSerializer,
+    PasswordResetSerializer,
+    PasswordResetConfirmSerializer
 
-	)
-
+)
 
 
 # Get All Routes
@@ -42,21 +38,27 @@ from .serializers import (
 @api_view(['GET'])
 def getRoutes(request):
     routes = [
-        '/api/token/',
-        '/api/register/',
-        '/api/token/refresh/',
-        
+        'token/',
+        'token/refresh/',
+        'register/',
+        'test/',
+        'home/',
+        'password/reset/',
+        'password/reset/confirm/',
+        'password/change/',
 
     ]
     return Response(routes)
 
+
 class MyTokenObtainPairView(TokenObtainPairView):
-	serializer_class=MyTokenObtainPairSerializer
+    serializer_class = MyTokenObtainPairSerializer
+
 
 class RegisterView(generics.CreateAPIView):
-	queryset=User.objects.all()
-	permission_classes=[AllowAny]
-	serializer_class=RegisterSerializer
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
+    serializer_class = RegisterSerializer
 
 
 @api_view(['GET', 'POST'])
@@ -71,20 +73,26 @@ def testEndPoint(request):
         return Response({'response_data': data}, status=status.HTTP_200_OK)
     return Response({}, status.HTTP_400_BAD_REQUEST)
 
+#  ==============================================================================
 
 
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 class HomeView(APIView):
-     
+
     permission_classes = (IsAuthenticated, )
+
     def get(self, request):
+        user = User.objects.get(id=request.user.id)
+        serializer = UserSerializer(user)
         content = {
-              'message': 'Welcome to the JWT Authentication page using React Js and Django!'}
+            'message': 'Welcome to the JWT Authentication page using React Js and Django!',
+            'data': serializer.data
+
+        }
         return Response(content)
-    
+
+
+
+#  ==============================================================================
 
 
 class PasswordResetView(generics.GenericAPIView):
@@ -113,9 +121,12 @@ class PasswordResetView(generics.GenericAPIView):
         send_mail(subject, message, 'ali@gmail.com', [user.email])
 
         return Response(
-            {'detail': 'Password reset email has been sent.','uid':uid,'token':token
-              
-            }, status=status.HTTP_200_OK)
+            {'detail': 'Password reset email has been sent.', 'uid': uid, 'token': token
+
+             }, status=status.HTTP_200_OK)
+
+#  ==============================================================================
+
 
 class PasswordResetConfirmView(generics.GenericAPIView):
     serializer_class = PasswordResetConfirmSerializer
@@ -126,7 +137,6 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         serializer.save()
 
         return Response({'detail': 'Password reset successfully.'}, status=status.HTTP_200_OK)
-    
 
 
 class ChangePasswordView(APIView):
@@ -136,7 +146,8 @@ class ChangePasswordView(APIView):
         user = request.user
         current_password = request.data.get('current_password')
         new_password = request.data.get('new_password')
-        confirm_password = request.data.get('confirm_password')  # Add this line
+        confirm_password = request.data.get(
+            'confirm_password')
 
         # Check if the new password and confirmation match
         if new_password != confirm_password:
@@ -149,6 +160,7 @@ class ChangePasswordView(APIView):
         # Set the new password and update the session authentication hash
         user.set_password(new_password)
         user.save()
-        update_session_auth_hash(request, user)  # Update the session hash to avoid logging out the user
+        # Update the session hash to avoid logging out the user
+        update_session_auth_hash(request, user)
 
         return Response({"detail": "Password changed successfully"}, status=status.HTTP_200_OK)
