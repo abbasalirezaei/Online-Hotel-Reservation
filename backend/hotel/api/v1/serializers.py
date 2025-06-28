@@ -7,7 +7,7 @@ from hotel.models.hotel_model import Hotel, HotelLocation, HotelImage
 from hotel.models.room_model import Room, RoomImage
 from accounts.models import User
 
-# ----------- HotelImage -----------
+# ----------- Hotel Image -----------
 
 
 class HotelImageSerializer(serializers.ModelSerializer):
@@ -37,7 +37,7 @@ class HotelLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = HotelLocation
         fields = ['id', 'hotel', 'country', 'city', 'postal_code', 'address']
-        read_only_fields=[ 'hotel',]
+        read_only_fields = ['hotel',]
 
     def validate_hotel(self, hotel):
         request = self.context.get("request")
@@ -99,14 +99,15 @@ class HotelCreateSerializer(serializers.ModelSerializer):
                 HotelImage.objects.create(hotel=hotel, image=image_data)
         return hotel
 
-
 # ----------- Hotel Detail -----------
+
 
 class HotelDetailSerializer(serializers.ModelSerializer):
     location = HotelLocationSerializer(read_only=True)
     images = HotelImageSerializer(many=True, read_only=True)
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     room_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Hotel
 
@@ -118,9 +119,16 @@ class HotelDetailSerializer(serializers.ModelSerializer):
 
     def get_room_count(self, obj):
         return obj.rooms.count()
-# ----------- image serializers -----------
 
 
+'''
+|==================================================|
+|--------------- Room Serializers------------------|
+|==================================================|
+'''
+
+
+# Room Images
 class RoomImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -134,19 +142,32 @@ class RoomImageSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.image.url)
         return None
 
+# Room Lists
 
-class RoomSerializer(serializers.ModelSerializer):
-    images = RoomImageSerializer(many=True, required=False)
-    hotel = serializers.PrimaryKeyRelatedField(queryset=Hotel.objects.all())
-    slug = serializers.SlugField(required=False)
+
+class RoomListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Room
         fields = [
-            'id', 'hotel', 'room_type', 'occupancy',  'title', 'slug',
+            'id',  'hotel', 'title', 'slug',  'room_type','main_image'
+
+        ]
+        read_only_fields = ['hotel',]
+
+
+class RoomCreateSerializer(serializers.ModelSerializer):
+
+    hotel = serializers.PrimaryKeyRelatedField(queryset=Hotel.objects.all())
+    slug = serializers.SlugField(required=False, read_only=True)
+
+    class Meta:
+        model = Room
+        fields = [
+            'room_type', 'occupancy', 'title', 'slug', 'hotel',
             'guests_count', 'room_details', 'has_balcony', 'has_air_conditioning',
             'has_tv', 'pets', 'price_per_night', 'capacity', 'floor', 'is_available',
-            'rating', 'created_at', 'updated_at', 'images'
+            'rating', 'main_image'
         ]
 
     def validate(self, data):
@@ -156,12 +177,10 @@ class RoomSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        images_data = self.initial_data.get('images', [])
         slug = validated_data.get('slug') or slugify(validated_data['title'])
         validated_data['slug'] = slug
         room = Room.objects.create(**validated_data)
-        for image in images_data:
-            RoomImage.objects.create(room=room, **image)
+
         return room
 
     def update(self, instance, validated_data):

@@ -13,8 +13,9 @@ urlpatterns = [
     # path('hotels/<int:pk>/edit/', views.HotelUpdateAPIView.as_view(), name='hotel-edit'),
     # path('hotels/<int:pk>/rooms/', views.RoomListAPIView.as_view(), name='hotel-room-list'),
     
-    path('rooms/create/', views.RoomCreateAPIView.as_view(), name='room-create'),
-    path('rooms/<int:pk>/', views.RoomDetailAPIView.as_view(), name='room-detail'),
-    path('rooms/<int:pk>/edit/', views.RoomUpdateAPIView.as_view(), name='room-edit'),
+    path('hotels/<int:hotel_id>/rooms/create/', views.RoomCreateAPIView.as_view(), name='room-create'),
+    path('hotels/<int:hotel_id>/rooms/', views.RoomListAPIView.as_view(), name='room-create'),
+    # path('rooms/<int:pk>/', views.RoomDetailAPIView.as_view(), name='room-detail'),
+    # path('rooms/<int:pk>/edit/', views.RoomUpdateAPIView.as_view(), name='room-edit'),
     # path('rooms/<int:pk>/availability/', views.RoomAvailabilityAPIView.as_view(), name='room-availability'),
 ]
