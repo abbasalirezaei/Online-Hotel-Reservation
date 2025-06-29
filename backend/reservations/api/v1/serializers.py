@@ -2,10 +2,10 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from django.db import transaction
 from decimal import Decimal
 
-
-from reservations.models import Reservation, BookingStatus
+from reservations.models import Reservation, BookingStatus, CheckIn
 from hotel.models import Room
 from discount.models import Coupon
 
@@ -47,13 +47,13 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        user = self.context['request'].user.customer_profile
+        request = self.context['request']
+        user = request.user.customer_profile
         room = validated_data['room']
         check_in = validated_data['checking_date']
         check_out = validated_data['checkout_date']
         nights = (check_out - check_in).days
 
-        # validate the coupon
         coupon = None
         code = validated_data.get('coupon_code')
         if code:
@@ -62,34 +62,61 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
                 if not coupon.is_valid():
                     raise ValidationError("Invalid or expired coupon.")
             except Coupon.DoesNotExist:
-                raise ValidationError(
-                    "Coupon not found, please Enter Valid Coupon.")
+                raise ValidationError("Coupon not found.")
 
-        # calculate total_price
         base_price = room.price_per_night
         discount = Decimal(coupon.discount_percent) if coupon else Decimal('0')
-        total_price = base_price * nights * \
-            (Decimal('1') - discount / Decimal('100'))
+        total_price = base_price * nights * (Decimal('1') - discount / Decimal('100'))
 
-        return Reservation.objects.create(
-            user=user,
-            room=room,
-            checking_date=check_in,
-            checkout_date=check_out,
-            nights=nights,
-            coupon=coupon,
-            prefered_payment_method=validated_data['prefered_payment_method'],
-            total_price=total_price
-        )
+        with transaction.atomic():
+            reservation = Reservation.objects.create(
+                user=user,
+                room=room,
+                checking_date=check_in,
+                checkout_date=check_out,
+                nights=nights,
+                coupon=coupon,
+                prefered_payment_method=validated_data['prefered_payment_method'],
+                total_price=total_price,
+                booking_status=BookingStatus.PENDING
+            )
+
+            CheckIn.objects.create(
+                reservation=reservation,
+                customer=user,
+                room=room,
+                phone_number=user.user.phone_number,
+                email=user.user.email
+            )
+
+        return reservation
 
 
-'''class ReservationSerializer(serializers.ModelSerializer):
+
+
+#  Reservation List
+class ReservationListSerializer(serializers.ModelSerializer):
+    room_title = serializers.CharField(source='room.title')
+    hotel_name = serializers.CharField(source='room.hotel.name')
 
     class Meta:
         model = Reservation
         fields = [
-            'id', 'room',
-            'user', 'room_number',
-            'coupen', 'prefered_payment_method'
+            'id', 'room_title', 'hotel_name', 'checking_date', 'checkout_date',
+            'total_price', 'booking_status', 'prefered_payment_method'
         ]
-'''
+
+
+
+class OwnerReservationSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='user.full_name')
+    customer_email = serializers.CharField(source='user.user.email')
+    customer_phone_number = serializers.CharField(source='user.user.phone_number')
+    room_title = serializers.CharField(source='room.title')
+
+    class Meta:
+        model = Reservation
+        fields = [
+            'id', 'customer_name','customer_email','customer_phone_number', 'room_title',
+            'checking_date', 'checkout_date', 'booking_status', 'total_price'
+        ]
