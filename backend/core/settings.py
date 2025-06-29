@@ -35,6 +35,8 @@ INSTALLED_APPS = [
     'accounts',
     'hotel',
     'reservations',
+    'discount.apps.DiscountConfig',
+    'payment.apps.PaymentConfig',
 
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
@@ -110,7 +112,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 TIME_ZONE = 'Asia/Tehran'
-
 
 
 USE_TZ = True
