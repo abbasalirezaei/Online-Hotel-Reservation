@@ -164,7 +164,6 @@ class RoomDetailSerializer(serializers.ModelSerializer):
         fields = [
             "hotel",
             "room_type",
-            "occupancy",
             "title",
             "slug",
             "guests_count",
@@ -192,7 +191,7 @@ class RoomCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
         fields = [
-            'room_type', 'occupancy', 'title', 'slug', 'hotel',
+            'room_type', 'title', 'slug', 'hotel',
             'guests_count', 'room_details', 'has_balcony', 'has_air_conditioning',
             'has_tv', 'pets', 'price_per_night', 'capacity', 'floor', 'is_available',
             'rating', 'main_image'

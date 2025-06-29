@@ -15,7 +15,7 @@ class Room(models.Model):
         ('Suite', 'Suite'),
         ('Deluxe', 'Deluxe'),
     ])
-    occupancy = models.IntegerField(help_text="Maximum number of guests allowed")
+    
     title = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
     guests_count = models.IntegerField(default=1)
@@ -50,4 +50,4 @@ class RoomImage(models.Model):
     caption = models.CharField(max_length=200, blank=True)
 
     def __str__(self):
-        return f"Image for {self.room.name}"
+        return f"Image for {self.room.title}"

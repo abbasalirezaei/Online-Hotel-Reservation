@@ -43,7 +43,7 @@ class RoomAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
     fieldsets = (
         (None, {
-            'fields': ('hotel', 'title', 'slug', 'room_type', 'bed_type', 'price_per_night', 'capacity', 'guests_count')
+            'fields': ('hotel', 'title', 'slug', 'room_type', 'price_per_night', 'capacity', 'guests_count')
         }),
         ('Features', {
             'fields': ('has_balcony', 'has_air_conditioning', 'has_tv', 'pets', 'room_details', 'floor', 'is_available', 'rating')

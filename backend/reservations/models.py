@@ -4,7 +4,7 @@ from django.utils import timezone
 from hotel.models import Room
 from accounts.models import CustomerProfile
 from discount.models import Coupon
-
+from decimal import Decimal
 class BookingStatus(models.TextChoices):
     """Enumeration for the reservation status."""
     PENDING = 'pending', 'Pending'
@@ -65,34 +65,8 @@ class Reservation(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        """
-        Override save to:
-        - Prevent conflicting bookings
-        - Calculate discounted total
-        - Set cancelled timestamp
-        """
-        if self.checking_date and self.checkout_date:
-            if self.checking_date >= self.checkout_date:
-                raise ValueError("Check-in date must be before check-out date.")
-
-            conflict = Reservation.objects.filter(
-                room=self.room,
-                booking_status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED],
-                checking_date__lt=self.checkout_date,
-                checkout_date__gt=self.checking_date
-            ).exclude(id=self.id)
-
-            if conflict.exists():
-                raise ValueError("This room is already reserved in the selected date range.")
-
-        if not self.total_price:
-            base_price = self.room.price_per_night
-            discount = self.coupon.discount_percent if self.coupon and self.coupon.is_valid() else 0
-            self.total_price = base_price * self.nights * (1 - discount / 100)
-
         if self.booking_status == BookingStatus.CANCELLED and not self.cancelled_at:
             self.cancelled_at = timezone.now()
-
         super().save(*args, **kwargs)
 
     @property

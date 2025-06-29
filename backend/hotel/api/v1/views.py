@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 
 # Local apps
-from .permissions import IsHotelOwner
+from .permissions import IsHotelOwnerOrReadOnly
 from .serializers import (
     HotelListSerializer, HotelDetailSerializer, HotelCreateSerializer,
     HotelLocationSerializer, RoomCreateSerializer, RoomListSerializer,
@@ -38,7 +38,7 @@ class HotelListCreateView(generics.ListCreateAPIView):
     """
     Lists all verified hotels (GET) or allows authenticated owners to create new hotels (POST).
     """
-    permission_classes = [IsAuthenticatedOrReadOnly, IsHotelOwner]
+    permission_classes = [IsHotelOwnerOrReadOnly]
 
     def get_queryset(self):
         # Return only verified hotels
@@ -63,7 +63,7 @@ class HotelLocationView(generics.ListCreateAPIView):
     Each hotel can have only one location.
     """
     serializer_class = HotelLocationSerializer
-    permission_classes = [IsAuthenticated, IsHotelOwner]
+    permission_classes = [IsAuthenticated, IsHotelOwnerOrReadOnly]
 
     def get_queryset(self):
         # Only return locations belonging to the requesting user
@@ -117,7 +117,7 @@ class RoomImageListCreateView(generics.ListCreateAPIView):
     Lists or adds images for a specific room. Only hotel owners can upload.
     """
     serializer_class = RoomImageSerializer
-    permission_classes = [IsAuthenticated, IsHotelOwner]
+    permission_classes = [IsAuthenticated, IsHotelOwnerOrReadOnly]
 
     def get_queryset(self):
         # Return all images for a specific room
