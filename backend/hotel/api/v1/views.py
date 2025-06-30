@@ -17,6 +17,7 @@ from .serializers import (
 )
 from hotel.models import Hotel, Room, HotelLocation, RoomImage
 from reservations.models import Reservation
+from .filters import RoomFilter
 
 
 @api_view(['GET'])
@@ -93,13 +94,14 @@ class RoomListCreateView(generics.ListCreateAPIView):
     serializer_class = RoomListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['price_per_night', 'room_type', 'is_available']
-    search_fields = ['title', 'description']
-    ordering_fields = ['price_per_night', 'capacity']
+    filterset_class = RoomFilter
+    search_fields = ['title', 'description']  # full-text search
+    ordering_fields = ['price_per_night', 'capacity', 'floor', 'hotel__rating']
 
     def get_queryset(self):
         # Return all available rooms for the specified hotel
-        return Room.available.filter(hotel_id=self.kwargs['hotel_id'])
+        return Room.available.filter(
+            hotel_id=self.kwargs['hotel_id']).select_related('hotel').order_by('price_per_night')
 
     def get_serializer_class(self):
         # Use a different serializer when creating a room
