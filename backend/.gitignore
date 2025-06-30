@@ -38,7 +38,7 @@ media
 
 # File-based project format
 *.iws
-
+todo.md
 # IntelliJ
 out/
 

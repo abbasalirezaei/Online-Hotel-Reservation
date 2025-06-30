@@ -1,6 +1,13 @@
 version: '3.8'
 
 services:
+  redis:
+    container_name: redis
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
   backend:
     build: ./backend
     volumes:
@@ -9,19 +16,40 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=True
-    command: python manage.py runserver 0.0.0.0:8000  # بدون پارامتر --noreload
-
+    command: python manage.py runserver 0.0.0.0:8000  
+    depends_on:
+      - redis
+  worker:
+    build: ./backend
+    command: celery -A core worker --loglevel=info
+    depends_on:
+      - redis
+      - backend
+    volumes:
+      - ./backend:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+  beat:
+    build: ./backend
+    command: celery -A core beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      - redis
+      - backend
+    volumes:
+      - ./backend:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
   frontend:
     build: 
       context: ./frontend
-      dockerfile: Dockerfile.dev  # استفاده از داکرفایل جدید برای توسعه
+      dockerfile: Dockerfile.dev  
     volumes:
       - ./frontend:/app
-      - /app/node_modules        # حفظ node_modules داخل کانتینر
+      - /app/node_modules        
     ports:
       - "3000:3000"
     environment:
-      - WATCHPACK_POLLING=true   # فعال کردن polling برای hot-reload
-      - CHOKIDAR_USEPOLLING=true # برای سیستم‌های لینوکس
-    stdin_open: true  # برای حالت interactive
-    tty: true         # برای حالت interactive
+      - WATCHPACK_POLLING=true   
+      - CHOKIDAR_USEPOLLING=true 
+    stdin_open: true  
+    tty: true         

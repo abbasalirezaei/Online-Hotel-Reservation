@@ -1,17 +1,19 @@
-asgiref==3.7.2
+# general  modules
 Django==4.2.5
-<<<<<<< HEAD
 psycopg2-binary==2.9.7
-sqlparse==0.4.4
-typing_extensions==4.8.0
-# delete images from media folder when I remove it from product image
-install django-cleanup
-=======
 
 django-cors-headers==4.3.0
-django-jazzmin==2.6.0
-
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
 Pillow
->>>>>>> ccb84c2f80f19e08022025b5ef9443531670b215
+
+# third party modules
+python-decouple
+django-filter
+django-daisy
+
+# background task
+
+celery
+redis
+django-celery-beat

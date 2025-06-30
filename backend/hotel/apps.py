@@ -4,8 +4,8 @@ from django.apps import AppConfig
 class HotelConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'hotel'
-    verbose_name = "اتاق"
-    verbose_name_plural = "اتاق ها"
+    verbose_name = "hotel"
+    verbose_name_plural = "Hotels"
     
     def ready(self):
-        import hotel.signals  # جستجوی فایل signals.py  
+        import hotel.signals  

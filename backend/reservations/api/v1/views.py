@@ -34,7 +34,6 @@ def api_overview(request):
 
 # -> Reservations Views
 
-
 class RoomReservationCreateView(generics.CreateAPIView):
     queryset=Reservation.objects.all()
     serializer_class = ReservationCreateSerializer

@@ -23,7 +23,9 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     # 'jazzmin',
 
+    'django_daisy',
     'django.contrib.admin',
+    'django.contrib.humanize',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -31,17 +33,18 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
 
-    #
+    # Custom
     'accounts',
     'hotel',
     'reservations',
     'discount.apps.DiscountConfig',
     'payment.apps.PaymentConfig',
-
+    # Third party
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
-
+    'django_filters',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -173,3 +176,13 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+# celery and django celery
+
+
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
