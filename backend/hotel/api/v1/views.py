@@ -5,6 +5,8 @@ from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 # Local apps
 from .permissions import IsHotelOwnerOrReadOnly
@@ -39,6 +41,10 @@ class HotelListCreateView(generics.ListCreateAPIView):
     Lists all verified hotels (GET) or allows authenticated owners to create new hotels (POST).
     """
     permission_classes = [IsHotelOwnerOrReadOnly]
+    filterset_fields = ['location__city', 'rating']
+
+    search_fields = ['name', 'description']  # full-text search
+    ordering_fields = ['created_at', 'rating']
 
     def get_queryset(self):
         # Return only verified hotels
@@ -71,12 +77,14 @@ class HotelLocationView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         # Ensure the hotel belongs to the authenticated user and doesn't already have a location
-        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        hotel = get_object_or_404(
+            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         if hasattr(hotel, 'location'):
             raise ValidationError("This hotel already has a location.")
         serializer.save(hotel=hotel)
 
 # -> Room Views
+
 
 class RoomListCreateView(generics.ListCreateAPIView):
     """
@@ -84,6 +92,10 @@ class RoomListCreateView(generics.ListCreateAPIView):
     """
     serializer_class = RoomListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['price_per_night', 'room_type', 'is_available']
+    search_fields = ['title', 'description']
+    ordering_fields = ['price_per_night', 'capacity']
 
     def get_queryset(self):
         # Return all available rooms for the specified hotel
@@ -95,7 +107,8 @@ class RoomListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         # Only allow room creation for hotels owned by the current user
-        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        hotel = get_object_or_404(
+            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         serializer.save(hotel=hotel)
 
 
@@ -107,7 +120,6 @@ class RoomDetailView(generics.RetrieveAPIView):
     serializer_class = RoomDetailSerializer
     lookup_field = "slug"
     permission_classes = [IsAuthenticatedOrReadOnly]
-
 
 
 # -> Room Image Views

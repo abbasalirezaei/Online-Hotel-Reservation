@@ -150,7 +150,7 @@ class RoomListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
         fields = [
-            'id',  'hotel', 'title', 'slug',  'room_type', 'main_image'
+            'id',  'hotel', 'title', 'slug','price_per_night', 'room_type', 'main_image'
 
         ]
         read_only_fields = ['hotel',]
