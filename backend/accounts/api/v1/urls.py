@@ -6,13 +6,12 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 urlpatterns = [
+    path('', views.getRoutes),
     path('token/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('register/', views.RegisterView.as_view(), name='auth_register'),
     path('test/', views.testEndPoint, name='test'),
     path("home/",  views.HomeView.as_view()),
-    # path("customer/panel/",  views.CustomerPanelAPIView.as_view()),
-    path('', views.getRoutes),
 
     # password rest
     path('password/reset/', views.PasswordResetView.as_view(), name='password_reset'),

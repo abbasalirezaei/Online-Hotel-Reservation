@@ -12,10 +12,15 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from .permissions import IsHotelOwnerOrReadOnly
 from .serializers import (
     HotelListSerializer, HotelDetailSerializer, HotelCreateSerializer,
-    HotelLocationSerializer, RoomCreateSerializer, RoomListSerializer,
+    HotelLocationSerializer, HotelImageSerializer,
+    # Room serializers
+    RoomCreateSerializer, RoomListSerializer,
     RoomImageSerializer, RoomDetailSerializer
 )
-from hotel.models import Hotel, Room, HotelLocation, RoomImage
+from hotel.models import (
+    Hotel, HotelImage,
+    HotelLocation,  Room, RoomImage
+)
 from reservations.models import Reservation
 from .filters import RoomFilter
 
@@ -30,6 +35,7 @@ def api_overview(request):
         "hotels/<id>/": "GET (detail)",
         "hotels/<id>/location/": "GET | POST | PATCH",
         "hotels/<id>/rooms/": "GET (list rooms) | POST (create room)",
+        'hotels/<int:hotel_id>/images/': "GET | POST hotel images",
         "rooms/<slug>/": "GET (room detail)",
         "rooms/<id>/images/": "GET | POST room images"
     })
@@ -84,8 +90,23 @@ class HotelLocationView(generics.ListCreateAPIView):
             raise ValidationError("This hotel already has a location.")
         serializer.save(hotel=hotel)
 
-# -> Room Views
 
+class HotelImageListCreateView(generics.ListCreateAPIView):
+    serializer_class = HotelImageSerializer
+    permission_classes = [ IsHotelOwnerOrReadOnly]
+
+    def get_queryset(self):
+        return HotelImage.objects.filter(hotel_id=self.kwargs['hotel_id'])
+
+    def perform_create(self, serializer):
+        hotel = get_object_or_404(
+            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        serializer.save(hotel=hotel)
+
+
+
+
+# -> Room Views
 
 class RoomListCreateView(generics.ListCreateAPIView):
     """
@@ -131,7 +152,7 @@ class RoomImageListCreateView(generics.ListCreateAPIView):
     Lists or adds images for a specific room. Only hotel owners can upload.
     """
     serializer_class = RoomImageSerializer
-    permission_classes = [IsAuthenticated, IsHotelOwnerOrReadOnly]
+    permission_classes = [IsHotelOwnerOrReadOnly]
 
     def get_queryset(self):
         # Return all images for a specific room

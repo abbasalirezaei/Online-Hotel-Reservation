@@ -120,3 +120,31 @@ class OwnerReservationSerializer(serializers.ModelSerializer):
             'id', 'customer_name','customer_email','customer_phone_number', 'room_title',
             'checking_date', 'checkout_date', 'booking_status', 'total_price'
         ]
+
+
+class ReservationInvoiceSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source="user.full_name")
+    customer_email = serializers.EmailField(source="user.user.email")
+    room_title = serializers.CharField(source="room.title")
+    hotel_name = serializers.CharField(source="room.hotel.name")
+    hotel_location = serializers.CharField(source="room.hotel.location.city", default="")
+
+    discount_percent = serializers.SerializerMethodField()
+    subtotal = serializers.SerializerMethodField()
+    total = serializers.DecimalField(source="total_price", max_digits=10, decimal_places=2)
+
+    class Meta:
+        model = Reservation
+        fields = [
+            "id", "customer_name", "customer_email",
+            "hotel_name", "hotel_location", "room_title",
+            "checking_date", "checkout_date", "nights",
+            "prefered_payment_method", "booking_status",
+            "subtotal", "discount_percent", "total",
+        ]
+
+    def get_discount_percent(self, obj):
+        return obj.coupon.discount_percent if obj.coupon else 0
+
+    def get_subtotal(self, obj):
+        return obj.room.price_per_night * obj.nights

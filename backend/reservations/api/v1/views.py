@@ -1,76 +1,168 @@
-# Core Django & DRF
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import generics
-from rest_framework import status
+from rest_framework import generics, status
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
 
-from django.utils import timezone
+
 from django.shortcuts import get_object_or_404
-# Local apps
+
+# Local app imports
 from .serializers import (
     ReservationCreateSerializer,
     ReservationListSerializer,
-    OwnerReservationSerializer
+    OwnerReservationSerializer,
+    ReservationInvoiceSerializer
 )
-from hotel.models import Hotel, Room, HotelLocation, RoomImage
-from reservations.models import Reservation , BookingStatus
-from accounts.models import CustomerProfile
+from reservations.models import Reservation, BookingStatus
 
+from reservations.tasks import send_reservation_cancellation_email
 
 @api_view(['GET'])
 def api_overview(request):
     """
-    Provides an overview of available API endpoints for client discovery.
+    Endpoint: /api/v1/reservations/overview/
+
+    Provides a human-readable overview of the reservation-related API endpoints.
+    Useful for quick testing, onboarding, or self-documentation of the API.
     """
     return Response({
-        'rooms/<int:room_id>/reserve/',
-        'my/',
-        '<int:pk>/cancel/',
+        "Reserve Room": "rooms/<int:room_id>/reserve/",
+        "My Reservations": "my/",
+        "Cancel Reservation": "<int:pk>/cancel/",
+        "Owner Reservations": "owner/",
+        "Reservation Invoice": "<int:pk>/invoice/",
+        "report": "report/",
     })
 
-
-# -> Reservations Views
+# -------------------------------------
+# Reservation Views
+# -------------------------------------
 
 class RoomReservationCreateView(generics.CreateAPIView):
-    queryset=Reservation.objects.all()
+    """
+    Endpoint: POST /api/v1/reservations/rooms/<room_id>/reserve/
+
+    Allows authenticated users to create a reservation for a specific room.
+    The room ID is typically passed in the serializer payload or URL.
+    """
+    queryset = Reservation.objects.all()
     serializer_class = ReservationCreateSerializer
     permission_classes = [IsAuthenticated]
 
-    
 class UserReservationListView(generics.ListAPIView):
+    """
+    Endpoint: GET /api/v1/reservations/my/
+
+    Returns a list of all reservations made by the current authenticated user.
+    Sorted by booking date (newest first).
+    """
     serializer_class = ReservationListSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Reservation.objects.filter(user__user=self.request.user).order_by('-booking_date')
-
-
+        return Reservation.objects.filter(
+            user__user=self.request.user
+        ).order_by('-booking_date')
 
 class CancelReservationView(APIView):
+    """
+    Endpoint: POST /api/v1/reservations/<int:pk>/cancel/
+
+    Allows the authenticated user to cancel their own reservation.
+    Only reservations in 'PENDING' or 'CONFIRMED' states can be cancelled.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        reservation = get_object_or_404(Reservation, id=pk, user__user=request.user)
+        # Ensure reservation belongs to the current user
+        reservation = get_object_or_404(
+            Reservation, id=pk, user__user=request.user)
 
-        if reservation.booking_status not in [BookingStatus.PENDING, BookingStatus.CONFIRMED]:
+        # Only allow cancellation if status is pending or confirmed
+        if reservation.booking_status not in [
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED
+        ]:
             raise ValidationError("Only pending or confirmed reservations can be canceled.")
 
         reservation.booking_status = BookingStatus.CANCELLED
         reservation.save(update_fields=['booking_status'])
+
+        # Trigger confirmation email asynchronously
+        send_reservation_cancellation_email.delay(reservation.id)
+
         return Response({"detail": "Reservation cancelled."}, status=status.HTTP_200_OK)
 
-
-
-
-
 class HotelOwnerReservationListView(generics.ListAPIView):
+    """
+    Endpoint: GET /api/v1/reservations/owner/
+
+    Returns all reservations where the current authenticated user is the owner
+    of the hotel (through the room relationship).
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = OwnerReservationSerializer
 
     def get_queryset(self):
+        # Filter reservations for rooms linked to hotels owned by the current user
         return Reservation.objects.filter(
             room__hotel__owner=self.request.user
         ).order_by('-booking_date')
+
+class ReservationInvoiceAPIView(generics.RetrieveAPIView):
+    """
+    Endpoint: GET /api/v1/reservations/<int:pk>/invoice/
+
+    Retrieves the invoice details for a specific reservation.
+    Only visible to the reservation’s owner (customer) or staff.
+    """
+    queryset = Reservation.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = ReservationInvoiceSerializer
+
+    def get_object(self):
+        reservation = super().get_object()
+
+        # Ensure only the reservation's customer or staff can view it
+        if reservation.user.user != self.request.user and not self.request.user.is_staff:
+            raise PermissionDenied("You are not authorized to view this invoice.")
+
+        return reservation
+    
+
+
+class ReservationReportView(APIView):
+    """
+    Endpoint: GET /api/v1/reservations/report/
+    Provides daily booking count and revenue for hotel owners.
+    Optional query params: ?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        start_date = request.query_params.get("start_date")
+        end_date = request.query_params.get("end_date")
+
+        qs = Reservation.objects.filter(
+            room__hotel__owner=user,
+            booking_status=BookingStatus.COMPLETED
+        )
+
+        if start_date:
+            qs = qs.filter(booking_date__date__gte=start_date)
+        if end_date:
+            qs = qs.filter(booking_date__date__lte=end_date)
+
+        data = qs.annotate(
+            booking_day=TruncDate("booking_date")
+        ).values("booking_day").annotate(
+            total_bookings=Count("id"),
+            total_revenue=Sum("total_price")
+        ).order_by("-booking_day")
+
+        return Response(data)

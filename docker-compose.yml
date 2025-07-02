@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   redis:
@@ -39,17 +38,22 @@ services:
       - ./backend:/app
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
-  frontend:
-    build: 
-      context: ./frontend
-      dockerfile: Dockerfile.dev  
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules        
-    ports:
-      - "3000:3000"
-    environment:
-      - WATCHPACK_POLLING=true   
-      - CHOKIDAR_USEPOLLING=true 
-    stdin_open: true  
-    tty: true         
+  smtp4dev:
+      image: rnwood/smtp4dev:v3
+      restart: always
+      ports:
+        # Change the number before : to the port the web interface should be accessible on
+        - '5001:80'
+        # Change the number before : to the port the SMTP server should be accessible on
+        - '2525:25'
+        # Change the number before : to the port the IMAP server should be accessible on
+        - '144:143'
+      volumes:
+        # This is where smtp4dev stores the database..
+          - smtp4dev-data:/smtp4dev
+      environment:
+        - ServerOptions__HostName=smtp4dev
+
+
+volumes:
+  smtp4dev-data:

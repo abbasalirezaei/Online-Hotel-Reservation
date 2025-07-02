@@ -10,6 +10,7 @@ urlpatterns = [
     path('hotels/', views.HotelListCreateView.as_view(), name='hotel-list-create'),  # List all hotels or create a new one
     path('hotels/<int:pk>/', views.HotelDetailView.as_view(), name='hotel-detail'),  # Retrieve hotel details by ID
     path('hotels/<int:hotel_id>/location/', views.HotelLocationView.as_view(), name='hotel-location'),  # Manage hotel location
+    path('hotels/<int:hotel_id>/images/', views.HotelImageListCreateView.as_view(), name='hotel-image-list-create'),
 
 
     # Room endpoints

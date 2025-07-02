@@ -121,6 +121,14 @@ class HotelDetailSerializer(serializers.ModelSerializer):
         return obj.rooms.count()
 
 
+
+class HotelImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HotelImage
+        fields = ['id', 'hotel', 'image', 'caption']
+        
+
+
 '''
 |==================================================|
 |--------------- Room Serializers------------------|
