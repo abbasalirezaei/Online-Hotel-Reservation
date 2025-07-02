@@ -21,14 +21,16 @@ from django.utils.encoding import force_bytes, force_str
 
 
 from accounts.models import User
-
+from accounts.tasks import send_activation_email_task
 
 from .serializers import (
     UserSerializer,
     MyTokenObtainPairSerializer,
-    RegisterSerializer,
+    RegistrationSerializer,
     PasswordResetSerializer,
-    PasswordResetConfirmSerializer
+    PasswordResetConfirmSerializer,
+    ActivationCodeSerializer,
+    ResendActivationCodeSerializer,
 
 )
 
@@ -55,11 +57,82 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    permission_classes = [AllowAny]
-    serializer_class = RegisterSerializer
+class RegistrationApiView(generics.GenericAPIView):
+    serializer_class = RegistrationSerializer
 
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            email = serializer.validated_data["email"]
+            data = {
+                "email": email,
+                "message": "Account created successfully, please check your email to activate your account."
+            }
+            return Response(data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyActivationCodeAPIView(APIView):
+    def post(self, request):
+        serializer = ActivationCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            code = serializer.validated_data["code"]
+
+            try:
+                user = User.objects.get(active_code=code)
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "Invalid or expired activation code."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if user.is_active:
+                return Response(
+                    {"message": "Your account is already activated."},
+                    status=status.HTTP_200_OK
+                )
+
+            user.is_active = True
+            user.active_code = None
+            user.save(update_fields=["is_active", "active_code"])
+
+            return Response(
+                {"message": "Your account has been activated successfully."},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResendActivationCodeAPIView(APIView):
+    def post(self, request):
+        serializer = ResendActivationCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data["email"]
+
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "No account found with this email."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            if user.is_active:
+                return Response(
+                    {"message": "This account is already activated."},
+                    status=status.HTTP_200_OK
+                )
+
+            # Send activation code (via celery or directly)
+            send_activation_email_task.delay(user.id, user.email)
+
+            return Response(
+                {"message": "Activation code resent successfully."},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -89,7 +162,6 @@ class HomeView(APIView):
 
         }
         return Response(content)
-
 
 
 #  ==============================================================================

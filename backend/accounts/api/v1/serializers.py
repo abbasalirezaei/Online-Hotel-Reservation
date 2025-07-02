@@ -9,13 +9,13 @@ from django.utils.http import urlsafe_base64_decode
 from rest_framework.exceptions import ValidationError
 
 from accounts.models import User
+import re
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email']
-
 
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -29,34 +29,73 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         return token
 
-
-class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True,
-                                     required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True,
-                                      required=True)
+class RegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
+    password2 = serializers.CharField(write_only=True, required=True)
+    full_name = serializers.CharField(max_length=255)
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password2']
+        fields = ['email', 'phone_number', 'full_name', 'password', 'password2']
+
+    def validate_phone_number(self, value):
+        """
+        Custom validator for phone number
+        """
+        if not re.match(r'^\d{10,11}$', value):
+            raise serializers.ValidationError("Phone number must be 10 or 11 digits.")
+
+        if User.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError("This phone number is already registered.")
+
+        return value
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError(
-                {"password": "password fields didn't match."}
-            )
+        password = attrs.get("password")
+        password2 = attrs.get("password2")
+
+        if password != password2:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        if len(password) < 10:
+            raise serializers.ValidationError({"password": "Password must be at least 10 characters long."})
+
+        if not re.search(r'[A-Za-z]', password) or not re.search(r'\d', password):
+            raise serializers.ValidationError({"password": "Password must contain both letters and numbers."})
+
+        if User.objects.filter(email=attrs.get("email")).exists():
+            raise serializers.ValidationError({"email": "This email is already registered."})
+
+        # Django built-in password validators (optional but good)
+        validate_password(password)
+
         return attrs
 
     def create(self, validated_data):
-        user = User.objects.create(
-            username=validated_data['username'],
-            email=validated_data['email']
+        validated_data.pop("password2")
+        full_name = validated_data.pop("full_name")
+        password = validated_data.pop("password")
+
+        user = User.objects.create_user(
+            email=validated_data["email"],
+            phone_number=validated_data["phone_number"],
+            password=password,
+            role=User.Role.CUSTOMER,
+            is_active=False  # Require email activation
         )
-        user.set_password(validated_data['password'])
-        user.save()
+
+        # اگر سیگنال باشه خودش ساخته میشه، ولی اگه نباشه:
+        if hasattr(user, "customer_profile"):
+            user.customer_profile.full_name = full_name
+            user.customer_profile.save()
+
         return user
 
-
+class ActivationCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=6)
+    
+class ResendActivationCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
     user = None  # Add a user field to store the user instance
