@@ -9,6 +9,7 @@ from django.utils.http import urlsafe_base64_decode
 from rest_framework.exceptions import ValidationError
 
 from accounts.models import User
+from reservations.api.v1.serializers import ReservationListSerializer
 import re
 
 
@@ -119,7 +120,6 @@ class PasswordResetSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.CharField()
     uid = serializers.CharField()
-
     password = serializers.CharField(
         style={'input_type': 'password'},
         write_only=True
@@ -156,3 +156,39 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         password = self.validated_data['password']
         user.set_password(password)
         user.save()
+
+class UserDashboardSerializer(serializers.ModelSerializer):
+    """Serializer for user dashboard view"""
+    booking_history = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'phone_number',
+            'role',
+            'date_joined',
+            'is_active',
+            'booking_history'
+        ]
+        read_only_fields = [
+            'id',
+            'email',
+            'phone_number',
+            'role',
+            'date_joined',
+            'is_active',
+            'booking_history'
+        ]
+
+    def get_booking_history(self, obj):
+        """
+        Returns the user's booking history through their customer profile.
+        Filters and serializes related reservations efficiently.
+        """
+        profile = getattr(obj, 'customer_profile', None)
+        if profile:
+            reservations_qs = profile.reservations.select_related('room__hotel')
+            return ReservationListSerializer(reservations_qs, many=True).data
+        return []

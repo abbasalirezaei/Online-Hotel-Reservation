@@ -5,7 +5,8 @@ from django.conf import settings
 from celery import shared_task
 from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
-
+from django.utils import timezone
+from datetime import timedelta
 logger = logging.getLogger(__name__)
 
 @shared_task
@@ -19,7 +20,8 @@ def send_activation_email_task(user_id, email):
 
     code = get_random_string(length=6, allowed_chars='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     user.active_code = code
-    user.save(update_fields=['active_code'])
+    user.active_code_expires_at = timezone.now() + timedelta(minutes=2)
+    user.save(update_fields=['active_code', 'active_code_expires_at'])
 
     context = {
         "code": code,

@@ -41,6 +41,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         )]
     )
     active_code = models.CharField(max_length=100, null=True, blank=True)
+    active_code_expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
