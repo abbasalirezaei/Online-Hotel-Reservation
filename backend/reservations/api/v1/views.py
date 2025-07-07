@@ -1,10 +1,13 @@
+from django.db.models.functions import TruncMonth, TruncDay, TruncWeek, TruncQuarter, TruncYear
 from rest_framework.exceptions import PermissionDenied, ValidationError
+
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import generics, status
 from django.db.models import Count, Sum
+
 from django.db.models.functions import TruncDate
 
 
@@ -35,9 +38,12 @@ def api_overview(request):
         "Cancel Reservation": "<int:pk>/cancel/",
         "Owner Reservations": "owner/",
         "Reservation Invoice": "<int:pk>/invoice/",
-        "report": "report/",
+        
+        # Reports
+        "Daily & Summary Report": "report/",
+        "Monthly Reservation Report": "report/monthly/?range=month|week|day|quarter|year",
+        "Room Popularity Report": "report/by-room/"
     })
-
 # -------------------------------------
 # Reservation Views
 # -------------------------------------
@@ -164,5 +170,68 @@ class ReservationReportView(APIView):
             total_bookings=Count("id"),
             total_revenue=Sum("total_price")
         ).order_by("-booking_day")
+
+        return Response(data)
+
+class MonthlyReservationReportView(APIView):
+    """
+    GET /report/monthly/?range=month
+    Returns booking count and revenue grouped by time periods (month, week, day, quarter, year).
+    Default is monthly.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        period = request.query_params.get("range", "month")  # Default: month
+
+        trunc_map = {
+            "day": TruncDay,
+            "week": TruncWeek,
+            "month": TruncMonth,
+            "quarter": TruncQuarter,
+            "year": TruncYear
+        }
+
+        truncate = trunc_map.get(period, TruncMonth)
+
+        qs = Reservation.objects.filter(
+            room__hotel__owner=user,
+            booking_status=BookingStatus.COMPLETED
+        )
+
+        report = qs.annotate(
+            period=truncate("booking_date")
+        ).values("period").annotate(
+            total_bookings=Count("id"),
+            total_revenue=Sum("total_price")
+        ).order_by("-period")
+
+        return Response(report)
+
+
+
+class RoomWiseReservationReportView(APIView):
+    """
+    GET /report/by-room/
+    Returns popularity of rooms (booking count and revenue per room)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        qs = Reservation.objects.filter(
+            room__hotel__owner=user,
+            booking_status=BookingStatus.COMPLETED
+        )
+
+        data = qs.values(
+            "room__id",
+            "room__title"
+        ).annotate(
+            total_bookings=Count("id"),
+            total_revenue=Sum("total_price")
+        ).order_by("-total_bookings")
 
         return Response(data)
