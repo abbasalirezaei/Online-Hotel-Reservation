@@ -17,3 +17,15 @@ def user_factory(db):
         defaults.update(kwargs)
         return User.objects.create_user(**defaults)
     return create_user
+
+
+@pytest.fixture
+def hotel_factory(db, user_factory):
+    def create_hotel(**kwargs):
+        from hotel.models import Hotel
+        defaults = {
+            "name": kwargs.get("name", "Test Hotel"),
+            "owner": kwargs.get("owner", user_factory()),
+        }
+        return Hotel.objects.create(**defaults)
+    return create_hotel
