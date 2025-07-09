@@ -12,6 +12,8 @@ class Notification(models.Model):
         ('checked_in', 'Checked In'),
         ('checked_out', 'Checked Out'),
         ('cancelled', 'Cancelled'),
+        ('review_submitted', 'Review Submitted'),
+        ('reply_submitted', 'Reply Submitted'),
         ('custom', 'Custom'),
     ]
 
