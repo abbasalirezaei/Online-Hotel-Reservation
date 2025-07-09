@@ -12,6 +12,13 @@ python-decouple
 django-filter
 django-daisy
 
+
+# test
+pytest 
+pytest-django 
+factory_boy 
+pytest-cov
+
 # background task
 
 celery
