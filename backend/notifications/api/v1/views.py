@@ -18,9 +18,11 @@ def api_overview(request):
     Quick overview for devs: lists key notification-related endpoints.
     """
     return Response({
-        "Submit Review for Hotel (POST)": "hotel/<hotel_id>/create/",
-        "List Hotel Reviews (GET)": "hotel/<hotel_id>/list/",
-        "API Overview": "overview/"
+        "API Overview": "overview/",
+        "List Notifications (GET)": "notifications/",
+        "Mark Notification as Read (POST)": "notifications/<int:pk>/read/",
+        "Send Custom Notification (POST)": "notifications/custom/",
+        "Send Global Notification (POST)": "notifications/global/"
     })
 
 
@@ -32,6 +34,13 @@ class UserNotificationsListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """
+        List all notifications for the authenticated user.
+        Includes global notifications.
+
+        Returns:
+        - A JSON response with a list of notifications for the authenticated user.
+        """ 
         user = request.user
         qs = Notification.objects.filter(
             models.Q(user=user) | models.Q(is_global=True)
@@ -47,11 +56,21 @@ class MarkNotificationReadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        """
+        Mark a specific notification as read.
+        
+        Parameters:
+        - `pk`: The ID of the notification to mark as read.
+        
+        Returns:
+        - A JSON response with a success message if the notification is marked as read.
+        - A JSON response with an error message if the notification is not found.
+        """
         try:
             notif = Notification.objects.get(pk=pk, user=request.user)
             notif.is_read = True
             notif.save()
-            return Response({"detail": "Notification marked as read ✅"})
+            return Response({"detail": "Notification marked as read"})
         except Notification.DoesNotExist:
             return Response(
                 {"error": "Notification not found."},
@@ -64,6 +83,17 @@ class SendCustomNotificationAPIView(APIView):
     Send a custom notification to a specific user (via Celery task).
     """
     def post(self, request):
+        """
+        Send a custom notification to a specific user (via Celery task).
+
+        Parameters:
+        - `user_id`: The ID of the user to send the notification to.
+        - `message`: The message to be sent.
+        - `priority`: The priority of the message (default: 'info').
+        - `redirect_url`: A URL to redirect the user to after reading the message.
+
+        Returns a JSON response with a success message if the notification is sent successfully.        
+        """
         user_id = request.data.get('user_id')
         message = request.data.get('message')
         priority = request.data.get('priority', 'info')
@@ -77,7 +107,7 @@ class SendCustomNotificationAPIView(APIView):
 
         send_custom_notification.delay(user_id, message, priority, redirect_url)
         return Response(
-            {'message': 'Custom notification sent ✅'},
+            {'message': 'Custom notification sent'},
             status=status.HTTP_200_OK
         )
 
@@ -87,6 +117,16 @@ class SendGlobalNotificationAPIView(APIView):
     Send a global notification to all users (via Celery task).
     """
     def post(self, request):
+        """
+        Send a global notification to all users (via Celery task).
+
+        Parameters:
+        - `message`: The message to be sent.
+        - `priority`: The priority of the message (default: 'info').
+        - `redirect_url`: A URL to redirect the user to after reading the message.
+
+        Returns a JSON response with a success message if the notification is sent successfully.
+        """     
         message = request.data.get('message')
         priority = request.data.get('priority', 'info')
         redirect_url = request.data.get('redirect_url')
@@ -99,6 +139,6 @@ class SendGlobalNotificationAPIView(APIView):
 
         send_global_notification.delay(message, priority, redirect_url)
         return Response(
-            {'message': 'Global notification sent ✅'},
+            {'message': 'Global notification sent '},
             status=status.HTTP_200_OK
         )

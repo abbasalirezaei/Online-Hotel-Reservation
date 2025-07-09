@@ -6,6 +6,7 @@ urlpatterns = [
     path('', views.api_overview, name='api-overview'),  # General overview of reservation-related APIs
     path('', views.UserNotificationsListView.as_view(), name='list-notifications'),
     path('<int:pk>/read/', views.MarkNotificationReadView.as_view(), name='mark-read-notification'),
-    path('create/', CreateCustomNotificationView.as_view(), name='create-notification'),
+    path('custom/', views.SendCustomNotificationAPIView.as_view(), name='send-custom-notification'),
+    path('global/', views.SendGlobalNotificationAPIView.as_view(), name='send-global-notification'),
 
 ]
