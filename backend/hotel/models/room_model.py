@@ -1,7 +1,9 @@
 from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 from django.utils.text import slugify
 from .hotel_model import Hotel
+
 
 class AvailableRoomManager(models.Manager):
     def get_queryset(self):
@@ -29,7 +31,11 @@ class Room(models.Model):
     capacity = models.PositiveIntegerField()
     floor = models.PositiveIntegerField(default=1)
     is_available = models.BooleanField(default=True)
-    rating = models.FloatField(default=4.5)
+    
+    rating = models.IntegerField(validators=[
+        MinValueValidator(0),
+        MaxValueValidator(5)
+    ])
     main_image = models.ImageField(upload_to='room/images/main_image/')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

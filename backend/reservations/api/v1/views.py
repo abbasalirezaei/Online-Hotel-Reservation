@@ -156,7 +156,7 @@ class ReservationReportView(APIView):
 
         qs = Reservation.objects.filter(
             room__hotel__owner=user,
-            booking_status=BookingStatus.COMPLETED
+            booking_status=BookingStatus.CONFIRMED
         )
 
         if start_date:
@@ -197,7 +197,7 @@ class MonthlyReservationReportView(APIView):
 
         qs = Reservation.objects.filter(
             room__hotel__owner=user,
-            booking_status=BookingStatus.COMPLETED
+            booking_status=BookingStatus.CONFIRMED
         )
 
         report = qs.annotate(
@@ -223,7 +223,7 @@ class RoomWiseReservationReportView(APIView):
 
         qs = Reservation.objects.filter(
             room__hotel__owner=user,
-            booking_status=BookingStatus.COMPLETED
+            booking_status=BookingStatus.CONFIRMED
         )
 
         data = qs.values(

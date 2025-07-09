@@ -35,6 +35,8 @@ INSTALLED_APPS = [
 
     # Custom
     'accounts',
+    'reviews.apps.ReviewsConfig',
+    'notifications',
     'hotel',
     'reservations',
     'discount.apps.DiscountConfig',

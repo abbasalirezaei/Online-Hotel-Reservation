@@ -18,8 +18,6 @@ urlpatterns = [
     #  Invoice & Reporting
     path('<int:pk>/invoice/', views.ReservationInvoiceAPIView.as_view(), name='reservation-invoice'),  # View invoice for a reservation
     path('report/', views.ReservationReportView.as_view(), name='reservation-report'),  # Daily bookings and revenue report for hotel owner
-
-
     path("report/monthly/", views.MonthlyReservationReportView.as_view(), name="monthly-reservation-report"),
     path("report/by-room/", views.RoomWiseReservationReportView.as_view(), name="room-wise-report"),
 ]

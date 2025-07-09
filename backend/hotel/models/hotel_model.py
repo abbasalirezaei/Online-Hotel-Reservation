@@ -20,10 +20,6 @@ class Hotel(models.Model):
     )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    rating = models.DecimalField(max_digits=3, decimal_places=1, default=0, validators=[
-        MinValueValidator(0),
-        MaxValueValidator(5)
-    ])
     phone_number = models.CharField(max_length=20, blank=True)
     email = models.EmailField(blank=True)
     website = models.URLField(blank=True)

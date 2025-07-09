@@ -13,8 +13,8 @@ class HotelLocationInline(admin.StackedInline):
 
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'rating', 'has_parking', 'created_at')
-    list_filter = ('has_parking', 'rating', 'created_at', 'owner')
+    list_display = ('name', 'owner',  'has_parking', 'created_at')
+    list_filter = ('has_parking', 'created_at', 'owner')
     search_fields = ('name', 'owner__username', 'location__city', 'location__country')
     inlines = [HotelLocationInline, HotelImageInline]
     readonly_fields = ('created_at',)

@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from django.utils.text import slugify
 from django.db import transaction
+from django.db.models import Avg, Count
 
 from hotel.models.hotel_model import Hotel, HotelLocation, HotelImage
 from hotel.models.room_model import Room, RoomImage
@@ -46,25 +47,31 @@ class HotelLocationSerializer(serializers.ModelSerializer):
                 "شما مجاز به افزودن آدرس برای این هتل نیستید.")
         return hotel
 
-
 class HotelListSerializer(serializers.ModelSerializer):
     # location = HotelLocationSerializer()
     images = HotelImageSerializer(many=True)
 
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     room_count = serializers.SerializerMethodField()
-
+    average_rating = serializers.SerializerMethodField()
+    total_reviews = serializers.SerializerMethodField()
     class Meta:
         model = Hotel
 
         fields = [
             'id', 'owner', 'name',  'rating',
-            'images', 'room_count'
+            'images', 'room_count', 'average_rating', 'total_reviews'   
         ]
         read_only_fields = ["owner",]
 
     def get_room_count(self, obj):
         return obj.rooms.count()
+
+    def get_average_rating(self, obj):
+        return round(obj.reviews.aggregate(Avg('rating'))['rating__avg'] or 0, 1)
+
+    def get_total_reviews(self, obj):
+        return obj.reviews.aggregate(Count('id'))['id__count']    
 # ----------- Hotel Create -----------
 
 
