@@ -1,6 +1,8 @@
 import uuid
 import pytest
 from django.contrib.auth import get_user_model
+from reservations.models import Reservation
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -61,3 +63,49 @@ def hotel_owner_factory(db):
         }
         return User.objects.create_user(**defaults)
     return create_hotel_owner
+
+
+
+@pytest.fixture
+def reservation_factory(db, user_factory):
+    from reservations.models import Reservation
+    from hotel.models import Hotel, Room
+
+    def create_reservation(**kwargs):
+        # کاربر
+        user = kwargs.get("user", user_factory())
+        customer_profile = user.customer_profile
+
+        # مالک هتل
+        owner = user_factory(role='HOTEL_OWNER')
+
+        # هتل
+        hotel = Hotel.objects.create(
+            name=kwargs.get("hotel_name", "Test Hotel"),
+            owner=owner,
+            description="Test description",
+        )
+
+        # اتاق
+        room = Room.objects.create(
+            hotel=hotel,
+            title="Standard Room",
+            room_details="A nice standard room",
+            price_per_night=100,
+            capacity=2,
+            is_available=True,
+            rating=5,   
+        )
+
+        defaults = {
+            "user": customer_profile,
+            "room": room,
+            "nights": kwargs.get("nights", 2),
+            "total_price": kwargs.get("total_price", 200),
+            "prefered_payment_method": kwargs.get("prefered_payment_method", "PREPAID"),
+            "booking_status": kwargs.get("booking_status", "pending"),
+            "checking_date": kwargs.get("checking_date", "2025-07-15"),
+            "checkout_date": kwargs.get("checkout_date", "2025-07-17"),
+        }
+        return Reservation.objects.create(**defaults)
+    return create_reservation

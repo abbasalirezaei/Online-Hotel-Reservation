@@ -50,4 +50,3 @@ def test_anonymous_cannot_send_global_notification():
     response = client.post(url, data=payload, format='json')
 
     assert response.status_code == 401
-ز

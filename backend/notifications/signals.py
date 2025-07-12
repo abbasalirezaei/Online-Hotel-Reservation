@@ -1,7 +1,35 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from notifications.models import Notification
 from reviews.models import Review
+from reservations.models import Reservation
+from notifications.tasks import (
+    notify_new_booking,
+    notify_booking_cancelled,
+    remind_checkin,
+    notify_checked_in,
+    notify_checked_out
+)
+
+
+@receiver(post_save, sender=Reservation)
+def handle_reservation_created_or_updated(sender, instance, created, **kwargs):
+    if created:
+        # new booking
+        notify_new_booking.delay(instance.id)
+    else:
+        # booking updated, check status
+        if instance.status == 'checked_in':
+            notify_checked_in.delay(instance.id)
+        elif instance.status == 'checked_out':
+            notify_checked_out.delay(instance.id)
+
+
+@receiver(post_delete, sender=Reservation)
+def handle_reservation_deleted(sender, instance, **kwargs):
+    # booking cancelled
+    notify_booking_cancelled.delay(instance.id)
+
 
 @receiver(post_save, sender=Review)
 def review_or_reply_notification(sender, instance, created, **kwargs):
@@ -26,4 +54,3 @@ def review_or_reply_notification(sender, instance, created, **kwargs):
             notification_type='reply_submitted',
             priority='info'
         )
-
