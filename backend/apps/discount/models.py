@@ -3,7 +3,7 @@ from django.utils import timezone
 
 
 
-# Create your models here.
+
 class Coupon(models.Model):
     code = models.CharField(max_length=20, unique=True,verbose_name="Discount Code")
     discount_percent = models.PositiveIntegerField(verbose_name="Discount Percentage")

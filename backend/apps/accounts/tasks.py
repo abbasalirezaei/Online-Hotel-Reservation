@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def send_activation_email_task(user_id, email):
+    
     User = get_user_model()
     try:
         user = User.objects.get(id=user_id)
@@ -43,3 +44,7 @@ def send_activation_email_task(user_id, email):
     except Exception as e:
         logger.error(f"Failed to send activation email to {email}: {str(e)}")
         return False
+
+
+
+

@@ -16,6 +16,10 @@ urlpatterns = [
     path('activate/code/', views.VerifyActivationCodeAPIView.as_view(), name='verify-activation-code'),
     path('activation/resend/', views.ResendActivationCodeAPIView.as_view(), name='activation-resend'),
 
+    # Hotel Owner Request
+    path('request-hotel-owner/', views.RequestHotelOwnerView.as_view(), name='request-hotel-owner'),
+    path('hotel-owner-profile/', views.HotelOwnerProfileView.as_view(), name='hotel-owner-profile'),
+    
     # Password Management
     path('password/reset/', views.PasswordResetView.as_view(), name='password_reset'),
     path('password/reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
@@ -23,7 +27,8 @@ urlpatterns = [
 
     # User Info
     path('dashboard/', views.UserDashboardView.as_view(), name='user_dashboard'),
-
+    path('customer-profile/', views.CustomerProfileView.as_view(), name='customer_profile'),
+    
     # Misc
     path('', views.getRoutes),
 ]

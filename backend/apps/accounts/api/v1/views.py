@@ -1,6 +1,9 @@
+from email import message
+from django.http import response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import generics, status
@@ -17,8 +20,13 @@ from django.urls import reverse
 
 from accounts.models import User
 from accounts.tasks import send_activation_email_task
+from .permissions import IsVerifiedHotelOwner
+from notifications.tasks import send_custom_notification
 from .serializers import (
     UserSerializer,
+    CustomerProfileSerializer,
+    HotelOwnerProfileSerializer,
+    HotelOwnerProfileCreateRequestSerializer,
     MyTokenObtainPairSerializer,
     RegistrationSerializer,
     PasswordResetSerializer,
@@ -27,6 +35,10 @@ from .serializers import (
     ResendActivationCodeSerializer,
     UserDashboardSerializer,
 )
+
+
+from accounts.models import HotelOwnerProfile
+
 
 @api_view(['GET'])
 def getRoutes(request):
@@ -39,19 +51,24 @@ def getRoutes(request):
         'register/',
         'activate/code/',
         'activation/resend/',
+        'customer-profile/',
+        'hotel-owner-profile/',
+        'request-hotel-owner/', 
         'dashboard/',
-        
+
         'password/reset/',
         'password/reset/confirm/',
         'password/change/',
     ]
     return Response(routes)
 
+
 class MyTokenObtainPairView(TokenObtainPairView):
     """
     JWT token generation endpoint.
     """
     serializer_class = MyTokenObtainPairSerializer
+
 
 class RegistrationApiView(generics.GenericAPIView):
     """
@@ -70,10 +87,12 @@ class RegistrationApiView(generics.GenericAPIView):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class VerifyActivationCodeAPIView(APIView):
     """
     Verifies the activation code and activates the user's account.
     """
+
     def post(self, request):
         serializer = ActivationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -92,15 +111,18 @@ class VerifyActivationCodeAPIView(APIView):
             user.is_active = True
             user.active_code = None
             user.active_code_expires_at = None
-            user.save(update_fields=["is_active", "active_code", "active_code_expires_at"])
+            user.save(update_fields=["is_active",
+                      "active_code", "active_code_expires_at"])
             return Response({"message": "Account activated successfully."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ResendActivationCodeAPIView(APIView):
     """
     Resends activation code via email for inactive users.
     """
+
     def post(self, request):
         serializer = ResendActivationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -117,7 +139,6 @@ class ResendActivationCodeAPIView(APIView):
             return Response({"message": "Activation code resent successfully."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class PasswordResetView(generics.GenericAPIView):
@@ -145,6 +166,7 @@ class PasswordResetView(generics.GenericAPIView):
             'token': token
         }, status=status.HTTP_200_OK)
 
+
 class PasswordResetConfirmView(generics.GenericAPIView):
     """
     Confirms and sets new password using token and UID.
@@ -156,6 +178,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'detail': 'Password has been reset successfully.'})
+
 
 class ChangePasswordView(APIView):
     """
@@ -180,6 +203,7 @@ class ChangePasswordView(APIView):
         update_session_auth_hash(request, user)
         return Response({"detail": "Password changed successfully"})
 
+
 class UserDashboardView(APIView):
     """
     Returns dashboard data for the authenticated user.
@@ -189,3 +213,58 @@ class UserDashboardView(APIView):
     def get(self, request):
         serializer = UserDashboardSerializer(request.user)
         return Response(serializer.data)
+
+
+class CustomerProfileView(RetrieveUpdateAPIView):
+    """
+    Retrieve or update the authenticated customer's profile.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = CustomerProfileSerializer
+
+    def get_object(self):
+        return self.request.user.customer_profile
+
+
+class HotelOwnerProfileView(RetrieveUpdateAPIView):
+    """
+    Retrieve or update the authenticated hotel owner's profile.
+    """
+    permission_classes = [IsVerifiedHotelOwner]
+    serializer_class = HotelOwnerProfileSerializer
+
+    def get_object(self):
+        return self.request.user.hotel_owner_profile
+
+
+class RequestHotelOwnerView(CreateAPIView):
+    """
+    POST /hotel-owner/request/
+    Allows authenticated customers to request to become hotel owners.
+    Sets role to BOTH and creates HotelOwnerProfile.
+    """
+    serializer_class = HotelOwnerProfileCreateRequestSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = HotelOwnerProfile.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+
+        if user.role in ['HOTEL_OWNER', 'BOTH']:
+            return Response(
+                {"detail": "Already a hotel owner or request already submitted."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.role = 'BOTH'
+        user.save(update_fields=['role'])
+        response = super().create(request, *args, **kwargs)
+        send_custom_notification.delay(
+            user.id,
+            message="Your hotel owner request has been submitted.", priority="info",
+            redirect_url="/hotel-owner-profile/"
+        )
+        return response
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

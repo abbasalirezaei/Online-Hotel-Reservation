@@ -8,8 +8,8 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework.exceptions import ValidationError
 
-from accounts.models import User
 from reservations.api.v1.serializers import ReservationListSerializer
+from accounts.models import User, CustomerProfile,HotelOwnerProfile
 import re
 
 
@@ -192,3 +192,38 @@ class UserDashboardSerializer(serializers.ModelSerializer):
             reservations_qs = profile.reservations.select_related('room__hotel')
             return ReservationListSerializer(reservations_qs, many=True).data
         return []
+
+class CustomerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerProfile
+        fields = [
+            'full_name', 'national_id', 'date_of_birth', 'loyalty_points',
+            'address', 'profile_image', 'gender', 'preferred_payment_method',
+            'newsletter_optin'
+        ]
+        read_only_fields = ['loyalty_points']
+
+
+class HotelOwnerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HotelOwnerProfile
+        fields = [
+            'company_name',
+            'business_license_number',
+            'bank_account_details',
+            'tax_id',
+            'is_verified',
+            'company_address',
+            'phone_number',
+            'support_email',
+            'website',
+            'id_document',
+            'logo'
+        ]
+        read_only_fields = ['is_verified']
+
+
+class HotelOwnerProfileCreateRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HotelOwnerProfile
+        exclude = ['user', 'is_verified', 'slug']
