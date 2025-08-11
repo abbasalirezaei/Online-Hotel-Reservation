@@ -2,12 +2,8 @@ import os
 from pathlib import Path
 from datetime import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-=5u(p$(8rimr+qtuln6rj%f!-vp0*7#bt(w^1#a@_6ox3o5lbh'
@@ -33,24 +29,28 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
 
+
     # Custom
-    'accounts',
-    'reviews.apps.ReviewsConfig',
-    'notifications',
-    'hotel',
-    'reservations',
-    'discount.apps.DiscountConfig',
-    'payment.apps.PaymentConfig',
+    'apps.accounts.apps.AccountsConfig',
+    'apps.reviews.apps.ReviewsConfig',
+    'apps.notifications',
+    'apps.hotel',
+    'apps.reservations',
+    'apps.discount.apps.DiscountConfig',
+    'apps.payment.apps.PaymentConfig',
     # Third party
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     'django_celery_beat',
-    "celery"
+    "celery",
+    'debug_toolbar',
+
 ]
 
 MIDDLEWARE = [
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -84,7 +84,6 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
     'default': {
@@ -95,7 +94,6 @@ DATABASES = {
 
 
 # Password validation
-# https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -125,7 +123,6 @@ LANGUAGE_CODE = 'en-us'
 USE_I18N = True
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 
 STATIC_URL = 'static/'
@@ -133,7 +130,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
@@ -205,3 +202,16 @@ EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = ''
 EMAIL_USE_TLS = False
 DEFAULT_FROM_EMAIL = 'no-reply@example.com'
+
+
+# django debug_toolbar
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+    "172.17.0.1",
+    'localhost'
+]
+
+DEBUG_TOOLBAR_CONFIG = {
+    "SHOW_TOOLBAR_CALLBACK": lambda request: True,
+}

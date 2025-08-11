@@ -1,6 +1,6 @@
 import pytest
-from notifications.models import Notification
-from reviews.models import Review
+from apps.notifications.models import Notification
+from apps.reviews.models import Review
 
 pytestmark = pytest.mark.django_db
 

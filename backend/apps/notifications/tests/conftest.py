@@ -1,7 +1,7 @@
 import uuid
 import pytest
 from django.contrib.auth import get_user_model
-from reservations.models import Reservation
+from apps.reservations.models import Reservation
 from django.utils import timezone
 
 User = get_user_model()
@@ -24,7 +24,7 @@ def user_factory(db):
 @pytest.fixture
 def hotel_factory(db, user_factory):
     def create_hotel(**kwargs):
-        from hotel.models import Hotel
+        from apps.hotel.models import Hotel
         defaults = {
             "name": kwargs.get("name", "Test Hotel"),
             "owner": kwargs.get("owner", user_factory()),
@@ -68,8 +68,8 @@ def hotel_owner_factory(db):
 
 @pytest.fixture
 def reservation_factory(db, user_factory):
-    from reservations.models import Reservation
-    from hotel.models import Hotel, Room
+    from apps.reservations.models import Reservation
+    from apps.hotel.models import Hotel, Room
 
     def create_reservation(**kwargs):
         # کاربر

@@ -20,9 +20,9 @@ from .serializers import (
     OwnerReservationSerializer,
     ReservationInvoiceSerializer
 )
-from reservations.models import Reservation, BookingStatus
+from apps.reservations.models import Reservation, BookingStatus
 
-from reservations.tasks import send_reservation_cancellation_email
+from apps.reservations.tasks import send_reservation_cancellation_email
 
 @api_view(['GET'])
 def api_overview(request):

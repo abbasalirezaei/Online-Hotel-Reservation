@@ -5,9 +5,9 @@ from rest_framework.exceptions import ValidationError
 from django.db import transaction
 from decimal import Decimal
 
-from reservations.models import Reservation, BookingStatus, CheckIn
-from hotel.models import Room
-from discount.models import Coupon
+from apps.reservations.models import Reservation, BookingStatus, CheckIn
+from apps.hotel.models import Room
+from apps.discount.models import Coupon
 
 
 class ReservationCreateSerializer(serializers.ModelSerializer):

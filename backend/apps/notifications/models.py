@@ -29,8 +29,8 @@ class Notification(models.Model):
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='info')
     booking = models.ForeignKey('reservations.Reservation', on_delete=models.CASCADE, null=True, blank=True)
 
-    redirect_url = models.URLField(blank=True, null=True)  # optional link to related page
-    is_global = models.BooleanField(default=False)         # show to all users if true
+    redirect_url = models.URLField(blank=True, null=True)  
+    is_global = models.BooleanField(default=False)      
     is_read = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)

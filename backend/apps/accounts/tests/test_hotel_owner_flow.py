@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
-from accounts.models import HotelOwnerProfile
-from notifications.models import Notification
+from apps.accounts.models import HotelOwnerProfile
+from apps.notifications.models import Notification
 from .factories import (
     UserFactory,
     VerifiedHotelOwnerFactory,
@@ -65,7 +65,7 @@ def test_verified_owner_can_update_profile(api_client):
 
 
 # Test: Notification is sent when hotel owner request is approved
-from notifications.tasks import send_custom_notification
+from apps.notifications.tasks import send_custom_notification
 
 @pytest.mark.django_db
 def test_notify_on_hotel_owner_approval():

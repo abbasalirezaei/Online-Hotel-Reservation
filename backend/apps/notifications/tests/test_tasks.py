@@ -1,8 +1,8 @@
 import pytest
 from django.utils import timezone
 
-from notifications.models import Notification
-from notifications.tasks import (
+from apps.notifications.models import Notification
+from apps.notifications.tasks import (
     notify_new_booking,
     notify_booking_cancelled,
     remind_checkin,

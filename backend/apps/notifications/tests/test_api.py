@@ -1,8 +1,8 @@
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
-from notifications.models import Notification
-from notifications.tasks import send_custom_notification, send_global_notification
+from apps.notifications.models import Notification
+from apps.notifications.tasks import send_custom_notification, send_global_notification
 
 pytestmark = pytest.mark.django_db
 

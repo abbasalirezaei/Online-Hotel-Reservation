@@ -6,8 +6,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 
-from notifications.tasks import send_custom_notification, send_global_notification
-from notifications.models import Notification
+from apps.notifications.tasks import send_custom_notification, send_global_notification
+from apps.notifications.models import Notification
 from .serializers import (NotificationSerializer,
                           CustomNotificationSerializer,
                           GlobalNotificationSerializer,)

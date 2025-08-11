@@ -18,10 +18,10 @@ from django.utils.encoding import force_bytes
 from django.utils import timezone
 from django.urls import reverse
 
-from accounts.models import User
-from accounts.tasks import send_activation_email_task
+from apps.accounts.models import User
+from apps.accounts.tasks import send_activation_email_task
 from .permissions import IsVerifiedHotelOwner
-from notifications.tasks import send_custom_notification
+from apps.notifications.tasks import send_custom_notification
 from .serializers import (
     UserSerializer,
     CustomerProfileSerializer,
@@ -37,7 +37,7 @@ from .serializers import (
 )
 
 
-from accounts.models import HotelOwnerProfile
+from apps.accounts.models import HotelOwnerProfile
 
 
 @api_view(['GET'])

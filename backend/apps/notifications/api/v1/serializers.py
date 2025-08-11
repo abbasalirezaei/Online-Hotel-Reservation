@@ -1,6 +1,6 @@
 # notifications/serializers.py
 from rest_framework import serializers
-from notifications.models import Notification
+from apps.notifications.models import Notification
 
 from django.contrib.auth import get_user_model
 

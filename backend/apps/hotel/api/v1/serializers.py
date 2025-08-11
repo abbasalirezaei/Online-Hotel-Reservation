@@ -4,9 +4,9 @@ from django.utils.text import slugify
 from django.db import transaction
 from django.db.models import Avg, Count
 
-from hotel.models.hotel_model import Hotel, HotelLocation, HotelImage
-from hotel.models.room_model import Room, RoomImage
-from accounts.models import User
+from apps.hotel.models.hotel_model import Hotel, HotelLocation, HotelImage
+from apps.hotel.models.room_model import Room, RoomImage
+from apps.accounts.models import User
 
 # ----------- Hotel Image -----------
 
@@ -53,22 +53,22 @@ class HotelListSerializer(serializers.ModelSerializer):
 
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     room_count = serializers.SerializerMethodField()
-    average_rating = serializers.SerializerMethodField()
+   
     total_reviews = serializers.SerializerMethodField()
     class Meta:
         model = Hotel
 
         fields = [
-            'id', 'owner', 'name',  'rating',
-            'images', 'room_count', 'average_rating', 'total_reviews'   
+            'id', 'owner', 'name', 
+            'images', 'room_count',  'total_reviews'   
         ]
         read_only_fields = ["owner",]
 
     def get_room_count(self, obj):
         return obj.rooms.count()
 
-    def get_average_rating(self, obj):
-        return round(obj.reviews.aggregate(Avg('rating'))['rating__avg'] or 0, 1)
+
+
 
     def get_total_reviews(self, obj):
         return obj.reviews.aggregate(Count('id'))['id__count']    
@@ -119,7 +119,7 @@ class HotelDetailSerializer(serializers.ModelSerializer):
         model = Hotel
 
         fields = [
-            'id', 'owner', 'name', 'description', 'rating', 'phone_number',
+            'id', 'owner', 'name', 'description',  'phone_number',
             'email', 'website', 'created_at', 'has_parking', 'policy',
             'amenities', 'location', 'images', 'room_count'
         ]
@@ -191,7 +191,7 @@ class RoomDetailSerializer(serializers.ModelSerializer):
             "capacity",
             "floor",
             "is_available",
-            "rating",
+            
             "main_image",
             "created_at",
             "updated_at",
@@ -208,8 +208,7 @@ class RoomCreateSerializer(serializers.ModelSerializer):
         fields = [
             'room_type', 'title', 'slug', 'hotel',
             'guests_count', 'room_details', 'has_balcony', 'has_air_conditioning',
-            'has_tv', 'pets', 'price_per_night', 'capacity', 'floor', 'is_available',
-            'rating', 'main_image'
+            'has_tv', 'pets', 'price_per_night', 'capacity', 'floor', 'is_available', 'main_image'
         ]
 
     def validate(self, data):

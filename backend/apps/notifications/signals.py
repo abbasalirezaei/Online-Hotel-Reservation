@@ -1,10 +1,10 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from notifications.models import Notification
-from reviews.models import Review
-from reservations.models import Reservation
-from accounts.models import HotelOwnerProfile
-from notifications.tasks import (
+from apps.notifications.models import Notification
+from apps.reviews.models import Review
+from apps.reservations.models import Reservation
+from apps.accounts.models import HotelOwnerProfile
+from apps.notifications.tasks import (
     notify_new_booking,
     notify_booking_cancelled,
     remind_checkin,

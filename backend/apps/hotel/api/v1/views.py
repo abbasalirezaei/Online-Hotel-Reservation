@@ -17,11 +17,11 @@ from .serializers import (
     RoomCreateSerializer, RoomListSerializer,
     RoomImageSerializer, RoomDetailSerializer
 )
-from hotel.models import (
+from apps.hotel.models import (
     Hotel, HotelImage,
     HotelLocation,  Room, RoomImage
 )
-from reservations.models import Reservation
+from apps.reservations.models import Reservation
 from .filters import RoomFilter
 
 
@@ -48,14 +48,15 @@ class HotelListCreateView(generics.ListCreateAPIView):
     Lists all verified hotels (GET) or allows authenticated owners to create new hotels (POST).
     """
     permission_classes = [IsHotelOwnerOrReadOnly]
-    filterset_fields = ['location__city', 'rating']
+    filterset_fields = ['location__city', ]
 
     search_fields = ['name', 'description']  # full-text search
-    ordering_fields = ['created_at', 'rating']
+    ordering_fields = ['created_at', ]
 
     def get_queryset(self):
         # Return only verified hotels
-        return Hotel.verified.all()
+        return Hotel.verified.prefetch_related('images', 'location')
+
 
     def get_serializer_class(self):
         # Choose appropriate serializer depending on request type
@@ -117,7 +118,7 @@ class RoomListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = RoomFilter
     search_fields = ['title', 'description']  # full-text search
-    ordering_fields = ['price_per_night', 'capacity', 'floor', 'hotel__rating']
+    ordering_fields = ['price_per_night', 'capacity', 'floor']
 
     def get_queryset(self):
         # Return all available rooms for the specified hotel
@@ -162,3 +163,5 @@ class RoomImageListCreateView(generics.ListCreateAPIView):
         # Ensure the room exists before saving the image
         room = get_object_or_404(Room, id=self.kwargs['room_id'])
         serializer.save(room=room)
+
+

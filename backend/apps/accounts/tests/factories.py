@@ -1,7 +1,7 @@
 
 import factory
 from django.contrib.auth import get_user_model
-from accounts.models import HotelOwnerProfile
+from apps.accounts.models import HotelOwnerProfile
 
 import pytest
 from rest_framework.test import APIClient

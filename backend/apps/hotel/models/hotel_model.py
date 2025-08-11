@@ -5,7 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
 
-from accounts.models import User
+from apps.accounts.models import User
 
 class VerifiedHotelManager(models.Manager):
     def get_queryset(self):

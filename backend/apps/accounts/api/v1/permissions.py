@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from accounts.models import HotelOwnerProfile
+from apps.accounts.models import HotelOwnerProfile
 
 class IsVerifiedHotelOwner(permissions.BasePermission):
     """

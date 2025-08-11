@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.contrib.auth import get_user_model
 from .models import Notification
-from reservations.models import Reservation
+from apps.reservations.models import Reservation
 
 User = get_user_model()
 

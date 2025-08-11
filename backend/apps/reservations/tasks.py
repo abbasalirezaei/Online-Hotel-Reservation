@@ -1,6 +1,6 @@
 from celery import shared_task
 from django.core.mail import send_mail
-from reservations.models import Reservation
+from apps.reservations.models import Reservation
 
 @shared_task
 def send_reservation_cancellation_email(reservation_id):

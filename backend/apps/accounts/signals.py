@@ -2,11 +2,11 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
-from accounts.tasks import send_activation_email_task
 # local imports
+from apps.accounts.tasks import send_activation_email_task
 from .models import User, CustomerProfile
-from accounts.models import HotelOwnerProfile
-from notifications.tasks import send_custom_notification    
+from apps.accounts.models import HotelOwnerProfile
+from apps.notifications.tasks import send_custom_notification    
 
 @receiver(post_save, sender=User)
 def create_user_customer(sender, instance, created, **kwargs):

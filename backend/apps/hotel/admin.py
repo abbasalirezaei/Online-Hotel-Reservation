@@ -20,7 +20,7 @@ class HotelAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)
     fieldsets = (
         (None, {
-            'fields': ('owner', 'name', 'description', 'rating', 'phone_number', 'email', 'website')
+            'fields': ('owner', 'name', 'description',  'phone_number', 'email', 'website')
         }),
         ('Details', {
             'fields': ('has_parking','is_verified', 'policy', 'amenities')

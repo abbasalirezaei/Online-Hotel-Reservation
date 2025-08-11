@@ -1,9 +1,9 @@
 from django.db import models
 from django.utils import timezone
 
-from hotel.models import Room
-from accounts.models import CustomerProfile
-from discount.models import Coupon
+from apps.hotel.models import Room
+from apps.accounts.models import CustomerProfile
+from apps.discount.models import Coupon
 from decimal import Decimal
 class BookingStatus(models.TextChoices):
     """Enumeration for the reservation status."""

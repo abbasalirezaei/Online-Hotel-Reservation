@@ -2,8 +2,8 @@
 from rest_framework import generics, permissions
 from django.shortcuts import get_object_or_404
 
-from hotel.models import Hotel
-from reviews.models import Review
+from apps.hotel.models import Hotel
+from apps.reviews.models import Review
 from .serializers import ReviewSerializer
 
 

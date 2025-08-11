@@ -8,8 +8,8 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework.exceptions import ValidationError
 
-from reservations.api.v1.serializers import ReservationListSerializer
-from accounts.models import User, CustomerProfile,HotelOwnerProfile
+from apps.reservations.api.v1.serializers import ReservationListSerializer
+from apps.accounts.models import User, CustomerProfile,HotelOwnerProfile
 import re
 
 

@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import Payment
-from reservations.models import BookingStatus
+from apps.reservations.models import BookingStatus
 
 @receiver(post_save, sender=Payment)
 def update_reservation_status_on_payment(sender, instance, **kwargs):

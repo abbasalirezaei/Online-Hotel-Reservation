@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from reservations.models import Reservation
+from apps.reservations.models import Reservation
 from .enums import PaymentMethod, PaymentStatus
 
 

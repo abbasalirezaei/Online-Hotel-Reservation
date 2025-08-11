@@ -11,7 +11,7 @@ Pillow
 python-decouple
 django-filter
 django-daisy
-
+django-debug-toolbar
 
 # test
 pytest 

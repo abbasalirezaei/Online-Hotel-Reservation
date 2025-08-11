@@ -3,7 +3,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-from hotel.models import Hotel
+from apps.hotel.models import Hotel
 User = get_user_model()
 
 

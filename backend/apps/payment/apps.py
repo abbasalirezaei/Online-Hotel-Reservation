@@ -3,6 +3,6 @@ from django.apps import AppConfig
 
 class PaymentConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'payment'
+    name = 'apps.payment'
     def ready(self):
-        import payment.signals
+        import apps.payment.signals

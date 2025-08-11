@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
-from notifications.models import Notification
+from apps.notifications.models import Notification
 
 pytestmark = pytest.mark.django_db
 
