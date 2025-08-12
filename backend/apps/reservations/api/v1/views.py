@@ -9,6 +9,7 @@ from rest_framework import generics, status
 from django.db.models import Count, Sum
 
 from django.db.models.functions import TruncDate
+from core.redis_client import redis_client
 
 
 from django.shortcuts import get_object_or_404
@@ -58,6 +59,50 @@ class RoomReservationCreateView(generics.CreateAPIView):
     queryset = Reservation.objects.all()
     serializer_class = ReservationCreateSerializer
     permission_classes = [IsAuthenticated]
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Extract data needed for the lock and final check
+        room = serializer.validated_data['room']
+        checkin_date = serializer.validated_data['checking_date']
+        checkout_date = serializer.validated_data['checkout_date']
+
+        # Define the lock key for Redis
+        lock_key = f"lock:room:{room.id}"
+        lock_timeout_seconds = 15  # The lock will auto-release after 15s
+
+        # Acquire the lock from our redis_client
+        lock = redis_client.lock(lock_key, timeout=lock_timeout_seconds)
+
+        try:
+            # Attempt to acquire the lock. If it's not acquired within 5 seconds,
+            # it means the room is being booked by someone else right now.
+            if not lock.acquire(blocking=True, blocking_timeout=5):
+                raise ValidationError(
+                    "This room is currently being booked by another user. Please try again in a moment.",
+                    code='service_unavailable'
+                )
+
+            # --- CRITICAL SECTION ---
+            # Now that we have the lock, we perform one final check to ensure the
+            # room wasn't booked in the milliseconds before we acquired the lock.
+            if not Reservation.objects.is_room_available(room.id, checkin_date, checkout_date):
+                raise ValidationError(
+                    "Sorry, this room has just been booked for the selected dates.",
+                    code='conflict'
+                )
+
+            # If the room is still available, proceed with saving the reservation.
+            # The serializer's create method will be called here.
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+        finally:
+            # Always release the lock when we're done.
+            if lock.locked():
+                lock.release()
 
 class UserReservationListView(generics.ListAPIView):
     """

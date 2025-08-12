@@ -32,17 +32,10 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
             raise ValidationError(
                 "Check-in date must be before check-out date.")
 
-        # checking conflict
-        conflict = Reservation.objects.filter(
-            room=room,
-            booking_status__in=[
-                BookingStatus.PENDING, BookingStatus.CONFIRMED],
-            checking_date__lt=check_out,
-            checkout_date__gt=check_in
-        )
-        if conflict.exists():
+       # Use the manager method for the initial availability check.
+        if not Reservation.objects.is_room_available(room.id, check_in, check_out):
             raise ValidationError(
-                "This room is already reserved in the selected date range.")
+                "This room is not available for the selected date range.")
 
         return data
 

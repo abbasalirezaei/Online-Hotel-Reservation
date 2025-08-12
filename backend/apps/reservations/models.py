@@ -20,6 +20,26 @@ class PreferedPaymentStatus(models.TextChoices):
     POSTPAID = 'Postpaid', 'Postpaid'
 
 
+class ReservationManager(models.Manager):
+    def is_room_available(self, room_id, checkin_date, checkout_date):
+        """
+        Checks if a room is available for a given date range by looking for conflicting bookings.
+        A conflict exists if the requested date range overlaps with any existing, non-cancelled booking.
+        """
+        conflicting_bookings = self.filter(
+            room_id=room_id
+        ).exclude(
+            booking_status=BookingStatus.CANCELLED
+        ).filter(
+            # An existing booking starts before the new one would end
+            checking_date__lt=checkout_date,
+            # AND the existing booking ends after the new one would start
+            checkout_date__gt=checkin_date
+        )
+
+        # If the queryset is empty (no conflicts found), the room is available.
+        return not conflicting_bookings.exists()
+
 class Reservation(models.Model):
     """
     Represents a room reservation made by a customer.
@@ -51,9 +71,12 @@ class Reservation(models.Model):
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Coupon Code")
 
     # Status fields
-    prefered_payment_method = models.CharField(max_length=10, choices=PreferedPaymentStatus.choices, default=PreferedPaymentStatus.PREPAID)
+    prefered_payment_method = models.CharField(max_length=25, choices=PreferedPaymentStatus.choices, default=PreferedPaymentStatus.PREPAID)
     booking_status = models.CharField(max_length=20, choices=BookingStatus.choices, default=BookingStatus.PENDING)
 
+
+    # custom manager
+    objects = ReservationManager()
     class Meta:
         verbose_name = "Reservation"
         verbose_name_plural = "Reservations"
