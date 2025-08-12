@@ -70,9 +70,12 @@ class UserReservationListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Reservation.objects.filter(
-            user__user=self.request.user
-        ).order_by('-booking_date')
+        return (
+            Reservation.objects
+            .select_related("room", "room__hotel")  # Optimize related data fetching
+            .filter(user__user=self.request.user)
+            .order_by("-booking_date")
+        )
 
 class CancelReservationView(APIView):
     """
@@ -84,11 +87,9 @@ class CancelReservationView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        # Ensure reservation belongs to the current user
         reservation = get_object_or_404(
             Reservation, id=pk, user__user=request.user)
 
-        # Only allow cancellation if status is pending or confirmed
         if reservation.booking_status not in [
             BookingStatus.PENDING,
             BookingStatus.CONFIRMED
@@ -114,11 +115,12 @@ class HotelOwnerReservationListView(generics.ListAPIView):
     serializer_class = OwnerReservationSerializer
 
     def get_queryset(self):
-        # Filter reservations for rooms linked to hotels owned by the current user
-        return Reservation.objects.filter(
-            room__hotel__owner=self.request.user
-        ).order_by('-booking_date')
-
+        return (
+            Reservation.objects
+            .select_related("room", "user", "user__user")  
+            .filter(room__hotel__owner=self.request.user)
+            .order_by("-booking_date")
+        )
 class ReservationInvoiceAPIView(generics.RetrieveAPIView):
     """
     Endpoint: GET /api/v1/reservations/<int:pk>/invoice/
@@ -126,14 +128,19 @@ class ReservationInvoiceAPIView(generics.RetrieveAPIView):
     Retrieves the invoice details for a specific reservation.
     Only visible to the reservation’s owner (customer) or staff.
     """
-    queryset = Reservation.objects.all()
+    queryset = (
+        Reservation.objects
+        .select_related(
+            "room", "room__hotel", "room__hotel__location",
+            "user", "user__user", "coupon"
+        )
+    )
     permission_classes = [IsAuthenticated]
     serializer_class = ReservationInvoiceSerializer
 
     def get_object(self):
         reservation = super().get_object()
 
-        # Ensure only the reservation's customer or staff can view it
         if reservation.user.user != self.request.user and not self.request.user.is_staff:
             raise PermissionDenied("You are not authorized to view this invoice.")
 

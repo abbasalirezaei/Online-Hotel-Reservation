@@ -1,0 +1,7 @@
+{% comment %} Temporary fix for missing django/forms/default.html {% endcomment %}
+{% load i18n %}
+<form method="{{ form_method|default:'post' }}" {% if form_action %}action="{{ form_action }}"{% endif %}>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{% trans "Submit" %}</button>
+</form>
