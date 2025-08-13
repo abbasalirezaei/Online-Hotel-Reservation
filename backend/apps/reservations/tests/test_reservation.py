@@ -124,14 +124,13 @@ def test_create_reservation_fails_if_lock_cannot_be_acquired(mock_redis_lock):
 
 
 @pytest.mark.django_db
-@patch('apps.reservations.models.Reservation.objects.is_room_available')
 @patch('core.redis_client.redis_client.lock')
-def test_create_reservation_fails_if_room_booked_during_lock(mock_redis_lock, mock_is_available):
+@patch('apps.reservations.models.ReservationManager.is_room_available')
+def test_create_reservation_fails_if_room_booked_during_lock(mock_is_available, mock_redis_lock):
     client = APIClient()
 
     owner_user = UserFactory(role='HOTEL_OWNER')
     customer_user = UserFactory(role='CUSTOMER')
-
     HotelOwnerProfile.objects.create(user=owner_user)
     CustomerProfile.objects.get_or_create(user=customer_user)
 
@@ -140,6 +139,7 @@ def test_create_reservation_fails_if_room_booked_during_lock(mock_redis_lock, mo
 
     mock_lock_instance = MagicMock()
     mock_lock_instance.acquire.return_value = True
+    mock_lock_instance.release.return_value = None
     mock_redis_lock.return_value = mock_lock_instance
 
     mock_is_available.side_effect = [True, False]
@@ -152,7 +152,6 @@ def test_create_reservation_fails_if_room_booked_during_lock(mock_redis_lock, mo
         "checkout_date": "2025-12-22",
         "room": room.id,
         "prefered_payment_method": "Postpaid",
-        "coupon_code": "",
     }
 
     response = client.post(url, data, format='json')

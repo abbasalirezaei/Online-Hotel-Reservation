@@ -24,7 +24,7 @@ class UserFactory(factory.django.DjangoModelFactory):
 
     email = factory.Sequence(lambda n: f"user{n}@example.com")
     password = factory.PostGenerationMethodCall('set_password', 'pass1234')
-    phone_number = factory.Sequence(lambda n: f"0912345678{n}")
+    phone_number = factory.Sequence(lambda n: f"091234567{n % 10}")
     role = "CUSTOMER"
     is_active = True
 
