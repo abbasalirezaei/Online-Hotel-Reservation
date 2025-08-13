@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.core.mail import send_mail
 from apps.reservations.models import Reservation
+from apps.reservations.models import BookingStatus
 
 @shared_task
 def send_reservation_cancellation_email(reservation_id):
@@ -25,3 +26,14 @@ def send_reservation_cancellation_email(reservation_id):
 
     except Reservation.DoesNotExist:
         pass  
+
+@shared_task
+def cancel_unpaid_reservation(reservation_id):
+    try:
+        reservation = Reservation.objects.get(id=reservation_id)
+        if reservation.booking_status == BookingStatus.PENDING:
+            reservation.booking_status = BookingStatus.CANCELLED
+            reservation.save()
+            print(f"Reservation {reservation_id} cancelled due to non-payment.")
+    except Reservation.DoesNotExist:
+        pass 

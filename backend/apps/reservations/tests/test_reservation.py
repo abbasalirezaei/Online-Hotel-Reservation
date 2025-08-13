@@ -10,8 +10,9 @@ from rest_framework import status
 
 from apps.accounts.models import CustomerProfile, HotelOwnerProfile
 from apps.hotel.tests.factories import HotelFactory, RoomFactory
-from apps.reservations.models import Reservation
+from apps.reservations.models import Reservation, BookingStatus
 from apps.accounts.tests.factories import UserFactory
+from apps.reservations.tasks import cancel_unpaid_reservation
 
 
 @pytest.mark.django_db
@@ -159,3 +160,47 @@ def test_create_reservation_fails_if_room_booked_during_lock(mock_is_available, 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "has just been booked" in str(response.data)
     assert mock_is_available.call_count == 2
+
+
+@pytest.mark.django_db
+def test_cancel_unpaid_reservation_task_cancels_pending_reservation():
+    user = UserFactory(role='CUSTOMER')
+    customer_profile, _ = CustomerProfile.objects.get_or_create(user=user)
+    hotel = HotelFactory()
+    room = RoomFactory(hotel=hotel)
+    reservation = Reservation.objects.create(
+        user=customer_profile,
+        room=room,
+        checking_date="2025-12-01",
+        checkout_date="2025-12-02",
+        total_price=100,
+        prefered_payment_method="Prepaid",
+        nights=1,
+        booking_status=BookingStatus.PENDING
+    )
+    cancel_unpaid_reservation(reservation.id)
+    reservation.refresh_from_db()
+    assert reservation.booking_status == BookingStatus.CANCELLED
+
+
+@pytest.mark.django_db
+def test_cancel_unpaid_reservation_task_does_not_cancel_confirmed():
+    user = UserFactory(role='CUSTOMER')
+    customer_profile, _ = CustomerProfile.objects.get_or_create(user=user)
+    hotel = HotelFactory()
+    room = RoomFactory(hotel=hotel)
+    reservation = Reservation.objects.create(
+        user=customer_profile,
+        room=room,
+        checking_date="2025-12-01",
+        checkout_date="2025-12-02",
+        total_price=100,
+        prefered_payment_method="Prepaid",
+        nights=1,
+        booking_status=BookingStatus.CONFIRMED
+    )
+    cancel_unpaid_reservation(reservation.id)
+    reservation.refresh_from_db()
+    assert reservation.booking_status == BookingStatus.CONFIRMED
+
+
