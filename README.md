@@ -1,181 +1,153 @@
-````markdown
-# 🏨 Django-React Hotel Booking App
+```markdown
+# 🏨 Online Hotel Reservation (Backend)
 
-This is a full-stack hotel booking application built with **Django (REST Framework)** on the backend and **React** on the frontend. Users can browse available hotels and rooms, filter based on preferences, and make reservations. Admins can manage hotels, rooms, and bookings through a dedicated panel.
+A modern **backend-only hotel booking system** built with Django REST Framework and fully containerized for easy deployment.  
+This project delivers a robust API architecture, background task processing, and scalable database management using modern technologies.
+
+---
+![Tech Stack Banner](assets/tech-stack-banner.png)
+
+## 🚀 Tech Stack
+
+- **Django** + **Django REST Framework** — RESTful API development  
+- **PostgreSQL** — relational database  
+- **Redis** — in-memory data store for caching and task brokering  
+- **Celery** — asynchronous background task processing  
+- **Docker** + **Docker Compose** — containerization & environment orchestration  
+- **pytest** — automated testing and coverage reporting  
+- **Environment Variables** — secure, flexible configuration
 
 ---
 
-## 📦 Tech Stack
+## 📌 Features
 
-- **Backend**: Django, Django REST Framework  
-- **Frontend**: React, Axios  
-- **Database**: SQLite (default), but easily switchable to PostgreSQL  
-- **Styling**: CSS / Tailwind (if applicable)  
-- **Authentication**: JWT Auth  
-
----
-
-## 🎯 Features
-
-- 🔍 Browse list of hotels  
-- 🏨 View hotel details  
-- 📅 Make reservations  
-- 🔐 Login / Signup functionality  
-- 📂 **Admin panel** for:  
-  - Adding, editing, and deleting hotels & rooms  
-  - Managing bookings and availability  
-  - Viewing user information  
-- 🛏️ **Room & Services Tab**:  
-  - Display different types of rooms with images, capacity, and descriptions  
-  - Display list of available hotel services (Wi‑Fi, Breakfast, Parking, etc.)  
-- 🎛️ **Room Filter**:  
-  - Filter rooms dynamically by:  
-    - **Category** (Deluxe, Suite, etc.)  
-    - **Price Range**  
-    - **Availability** (dates and capacity)  
-- 🔗 RESTful API integration  
-- 📱 Responsive UI (mobile‑friendly)  
+- Full CRUD API for **Hotels**, **Rooms**, and **Reservations**  
+- **User authentication** (JWT or Session-based)  
+- **Role-based access control** (Admin / Customer)  
+- **Booking lifecycle management** with background processing:
+  - Confirmation emails  
+  - Expired booking cleanup  
+- **Scalable multi-service architecture**:
+  - Backend API  
+  - Celery Worker  
+  - Redis  
+  - PostgreSQL  
+- Comprehensive **pytest test suite** with fixtures and mocking  
+- **Environment-based configuration** for development & production
 
 ---
 
-## 🚀 Getting Started
+## 📂 Project Structure
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/abbasalirezaei/Django-React-Booking-Hotel.git
-cd Django-React-Booking-Hotel
-````
-
-### 2. Backend Setup
-
-```bash
-cd backend
-python -m venv env
-source env/bin/activate  # On Windows use `env\Scripts\activate`
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py runserver
 ```
-
-### 3. Frontend Setup
-
-Open a new terminal:
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
----
-
-### 🐳 Running the Project with Docker
-
-If you prefer to run the project with Docker containers, follow these steps:
-
-#### 1. Build and Start Containers
-
-```bash
-docker-compose up --build
-```
-
-This command will build the Docker images and start both the backend and frontend containers.
-
-#### 2. Apply Migrations
-
-In a new terminal, run the following to apply database migrations:
-
-```bash
-docker-compose exec backend python manage.py migrate
-```
-
-#### 3. Create a Superuser (Admin)
-
-To access the Django admin panel, create a superuser:
-
-```bash
-docker-compose exec backend python manage.py createsuperuser
-```
-
-Follow the prompts to set the username, email, and password.
-
-#### 4. Access the Application
-
-* **Backend API / Django Server**: [http://localhost:8000](http://localhost:8000)
-* **Django Admin Panel**: [http://localhost:8000/admin/](http://localhost:8000/admin/)
-* **React Frontend**: [http://localhost:3000](http://localhost:3000)
-
-#### 5. Stop the Containers
-
-To stop and remove all running containers:
-
-```bash
-docker-compose down
-```
-
----
-
-## 🛠️ Admin Panel
-
-* Go to: `http://localhost:8000/admin/`
-
-* Create superuser:
-
-  ```bash
-  python manage.py createsuperuser
-  ```
-
-* Use the panel to manage hotels, rooms, and bookings.
-
----
-
-## 📁 Folder Structure
-
-```bash
-Django-React-Booking-Hotel/
-│
+.
+├── docker-compose.yml
 ├── backend/
-│   ├── hotel/              # Django app for hotel logic
-│   ├── users/              # User auth and profile management
-│   ├── db.sqlite3          # Default DB (can change to PostgreSQL)
+│   ├── manage.py
+│   ├── core/                 # Main project configuration
+│   ├── apps/                 # Custom Django apps
+│   │   ├── hotels/           # Hotel management
+│   │   ├── bookings/         # Booking & reservation logic
+│   │   ├── users/            # User management & authentication
+│   │   └── ...
+│   ├── media/                # Uploaded media files
+│   ├── templates/            # Email & HTML templates
 │   └── ...
-│
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   └── App.js
-│   └── ...
+├── celery/
+│   └── tasks.py              # Celery task definitions
+├── requirements.txt
+├── pytest.ini
+├── Dockerfile
+├── .env                      # Local environment variables
+├── .env-sample               # Example env file (copy to `.env`)
+└── README.md
 ```
 
 ---
 
-## ✅ To-Do / Improvements
+## ⚡ Quick Start
 
-* [ ] Add payment gateway integration
-* [ ] Add user reviews and ratings
-* [ ] Email notifications for bookings
-* [ ] Add calendar-based booking UI
+### Prerequisites
+
+- **Docker** and **Docker Compose** installed
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/abbasalirezaei/Online-Hotel-Reservation.git
+   cd Online-Hotel-Reservation
+   ```
+
+2. **Setup environment variables**
+   ```bash
+   cp .env-sample .env
+   ```
+   Then update `.env` with your local configuration.
+
+3. **Start containers**
+   ```bash
+   docker-compose up --build
+   ```
+
+4. **Run database migrations**
+   ```bash
+   docker-compose exec django-backend python manage.py migrate
+   ```
+
+5. **Create a superuser**
+   ```bash
+   docker-compose exec django-backend python manage.py createsuperuser
+   ```
+
+6. **Access services**
+   - Admin Panel → [http://localhost:8000/admin/](http://localhost:8000/admin/)
+---
+
+## 🧪 Running Tests
+
+Run the entire test suite:
+```bash
+docker-compose exec django-backend pytest
+```
+
+Run a specific test module:
+```bash
+docker-compose exec django-backend pytest apps/bookings/tests/
+```
 
 ---
 
-## 🙌 Contributing
+## 🔧 Environment Variables
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
----
-
-## 📄 License
-
-[MIT](./LICENSE)
-
----
-
-## 🌟 Star if you like it!
-
-If you found this project helpful or inspiring, consider giving it a ⭐️ on GitHub!
+The project reads environment variables from the `.env` file.  
+A sample configuration is available in `.env-sample`:
 
 ```
+POSTGRES_DB=hotel_db
+POSTGRES_USER=hotel_user
+POSTGRES_PASSWORD=securepassword
+REDIS_URL=redis://redis:6379/0
+DJANGO_SECRET_KEY=your-secret-key
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 ```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository  
+2. Create your feature branch (`git checkout -b feature/new-feature`)  
+3. Commit your changes (`git commit -m 'Add some feature'`)  
+4. Push to the branch (`git push origin feature/new-feature`)  
+5. Open a Pull Request
+
+---
+
+## 📜 License
+
+This project is licensed under the **GPL-3.0 License**.
+```
+
+---
