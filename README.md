@@ -4,9 +4,9 @@
 A modern **backend-only hotel booking system** built with Django REST Framework and fully containerized for easy deployment.  
 This project delivers a robust API architecture, background task processing, and scalable database management using modern technologies.
 
----
 ![Tech Stack Banner](https://github.com/abbasalirezaei/Online-Hotel-Reservation/blob/main/assets/tech-stack-banner.png?raw=true)
 
+---
 ## 🚀 Tech Stack
 
 - **Django** + **Django REST Framework** — RESTful API development  
