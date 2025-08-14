@@ -2,18 +2,22 @@ import pytest
 from django.urls import reverse
 from apps.accounts.models import HotelOwnerProfile
 from apps.notifications.models import Notification
+from apps.notifications.tasks import send_custom_notification
 from .factories import (
     UserFactory,
-    VerifiedHotelOwnerFactory,
-    UnverifiedHotelOwnerFactory,
+    HotelOwnerProfileFactory,
     api_client,
-    celery_worker_parameters    
+    celery_worker_parameters
 )
 
-# Test: Successfully request to become hotel owner
+
+# 1. Request Submission Tests
+
+
+
 @pytest.mark.django_db
 def test_successful_owner_request(api_client):
-    user = UserFactory(role="CUSTOMER")
+    user = UserFactory(role="customer")
     api_client.force_authenticate(user)
 
     response = api_client.post(reverse("accounts_v1:request-hotel-owner"), {
@@ -24,32 +28,67 @@ def test_successful_owner_request(api_client):
     assert response.status_code == 201
     profile = HotelOwnerProfile.objects.get(user=user)
     assert profile.company_name == "MyHotel"
+    assert profile.is_verified is False
     user.refresh_from_db()
-    assert user.role == "BOTH"
+    assert user.role == "customer"
 
-# Test: Prevent duplicate hotel owner request
 @pytest.mark.django_db
 def test_duplicate_owner_request(api_client):
-    user = VerifiedHotelOwnerFactory().user
+    profile = HotelOwnerProfileFactory(is_verified=True)
+    user = profile.user
     api_client.force_authenticate(user)
 
-    response = api_client.post(reverse("accounts_v1:request-hotel-owner"), {})
+    response = api_client.post(reverse("accounts_v1:request-hotel-owner"), {
+        "company_name": "DuplicateHotel",
+        "business_license_number": "DUP123"
+    })
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_request_missing_required_fields(api_client):
+    user = UserFactory(role="customer")
+    api_client.force_authenticate(user)
+
+    response = api_client.post(
+        reverse("accounts_v1:request-hotel-owner"), {})  # Empty payload
+
     assert response.status_code == 400
+    assert "company_name" in response.data or "business_license_number" in response.data
 
 
-# Test: Access denied for unverified hotel owner profile
+
+# Permission & Access Control Tests
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", ["admin", "hotel_owner"])
+def test_non_customer_cannot_request_hotel_owner(api_client, role):
+    user = UserFactory(role=role)
+    api_client.force_authenticate(user)
+
+    response = api_client.post(reverse("accounts_v1:request-hotel-owner"), {
+        "company_name": "FakeHotel",
+        "business_license_number": "FAKE123"
+    })
+
+    assert response.status_code == 403
+
+
 @pytest.mark.django_db
 def test_unverified_owner_profile_access_denied(api_client):
-    user = UnverifiedHotelOwnerFactory().user
+    profile = HotelOwnerProfileFactory(is_verified=False)
+    user = profile.user
     api_client.force_authenticate(user)
 
     response = api_client.get(reverse("accounts_v1:hotel-owner-profile"))
     assert response.status_code == 403
 
-# Test: Verified hotel owner can update their profile
+
 @pytest.mark.django_db
 def test_verified_owner_can_update_profile(api_client):
-    profile = VerifiedHotelOwnerFactory()
+    profile = HotelOwnerProfileFactory(is_verified=True)
     user = profile.user
     api_client.force_authenticate(user)
 
@@ -64,26 +103,40 @@ def test_verified_owner_can_update_profile(api_client):
     assert profile.company_address == "Paris"
 
 
-# Test: Notification is sent when hotel owner request is approved
-from apps.notifications.tasks import send_custom_notification
+#  Notification Tests
 
 @pytest.mark.django_db
 def test_notify_on_hotel_owner_approval():
-    profile = UnverifiedHotelOwnerFactory()   # initially is_verified=False
+    profile = HotelOwnerProfileFactory(is_verified=False)
     user = profile.user
 
-    # Simulate approval
     profile.is_verified = True
     profile.save()
 
-    # Manually trigger the notification task (simulate what signal should do)
     send_custom_notification(user.id,
-        message="Your hotel owner request has been approved 🎉 You can now create your hotel.",
-        priority="info",
-        redirect_url="/hotel-owner-profile/"
-    )
+                             message="Your hotel owner request has been approved  You can now create your hotel.",
+                             priority="info",
+                             redirect_url="/hotel-owner-profile/"
+                             )
 
     notif = Notification.objects.get(user=user)
     assert "approved" in notif.message.lower()
 
 
+
+#  Role Integrity Test
+
+
+@pytest.mark.django_db
+def test_role_not_changed_on_request(api_client):
+    user = UserFactory(role="customer")
+    api_client.force_authenticate(user)
+
+    response = api_client.post(reverse("accounts_v1:request-hotel-owner"), {
+        "company_name": "RoleTestHotel",
+        "business_license_number": "ROLE123"
+    })
+
+    assert response.status_code == 201
+    user.refresh_from_db()
+    assert user.role == "customer"

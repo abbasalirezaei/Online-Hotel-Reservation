@@ -25,13 +25,12 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
 
-    class Role(models.TextChoices):
-        CUSTOMER = 'CUSTOMER', _('Customer')
-        HOTEL_OWNER = 'HOTEL_OWNER', _('Hotel Owner')
-        Both = 'Both', _('Both')    
-
-    role = models.CharField(
-        max_length=20, choices=Role.choices, default=Role.CUSTOMER)
+    ROLE_CHOICES = (
+        ('admin', 'Admin'),
+        ('hotel_owner', 'Hotel Owner'),
+        ('customer', 'Customer'),
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')  # <-- Make sure this exists
     email = models.EmailField(_('email address'), unique=True)
     phone_number = models.CharField(
         max_length=11,

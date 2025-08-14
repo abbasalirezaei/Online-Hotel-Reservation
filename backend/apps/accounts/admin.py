@@ -4,12 +4,14 @@ from .models.user_model import User
 from .models.customer_profile_model import CustomerProfile
 from .models.hotel_owner_profile_model import HotelOwnerProfile
 
+# Inline for CustomerProfile
 class CustomerProfileInline(admin.StackedInline):
     model = CustomerProfile
     can_delete = False
     verbose_name_plural = 'Customer Profile'
     fk_name = 'user'
 
+# Inline for HotelOwnerProfile
 class HotelOwnerProfileInline(admin.StackedInline):
     model = HotelOwnerProfile
     can_delete = False
@@ -22,26 +24,29 @@ class UserAdmin(BaseUserAdmin):
     list_filter = ('role', 'is_active', 'is_staff', 'date_joined')
     search_fields = ('email', 'phone_number')
     ordering = ('-date_joined',)
-    readonly_fields = ('date_joined',)  # <-- Add this line
+    readonly_fields = ('date_joined',)
+
     fieldsets = (
         (None, {'fields': ('email', 'password', 'role', 'phone_number')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Dates', {'fields': ('date_joined',)}),  # This is fine now, since it's readonly
+        ('Dates', {'fields': ('date_joined',)}),
     )
+
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
             'fields': ('email', 'role', 'password1', 'password2', 'phone_number', 'is_active', 'is_staff')}
         ),
     )
+
     inlines = []
 
     def get_inlines(self, request, obj):
         if obj is None:
             return []
-        if obj.role == User.Role.CUSTOMER:
+        if obj.role == 'customer':
             return [CustomerProfileInline]
-        elif obj.role == User.Role.HOTEL_OWNER:
+        elif obj.role == 'hotel_owner':
             return [HotelOwnerProfileInline]
         return []
 

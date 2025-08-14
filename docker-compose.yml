@@ -40,6 +40,16 @@ services:
       - ./backend:/app
     env_file:
       - .env
+  flower:
+    container_name: celery-flower
+    image: mher/flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - backend
+    env_file:
+      - .env
 
   beat:
     container_name: celery-beat

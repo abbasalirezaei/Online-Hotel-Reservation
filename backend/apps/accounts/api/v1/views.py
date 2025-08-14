@@ -20,7 +20,7 @@ from django.urls import reverse
 
 from apps.accounts.models import User
 from apps.accounts.tasks import send_activation_email_task
-from .permissions import IsVerifiedHotelOwner
+from .permissions import IsVerifiedHotelOwner,IsCustomer
 from apps.notifications.tasks import send_custom_notification
 from .serializers import (
     UserSerializer,
@@ -226,6 +226,45 @@ class CustomerProfileView(RetrieveUpdateAPIView):
         return self.request.user.customer_profile
 
 
+
+class RequestHotelOwnerView(CreateAPIView):
+    """
+    POST /hotel-owner/request/
+    Allows authenticated customers to request to become hotel owners.
+    Creates HotelOwnerProfile with is_verified=False.
+    Sends notification to user that request is submitted.
+    """
+    serializer_class = HotelOwnerProfileCreateRequestSerializer
+    permission_classes = [IsCustomer]
+    queryset = HotelOwnerProfile.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+
+        # Check if the user has already submitted a request
+        if HotelOwnerProfile.objects.filter(user=user).exists():
+            return Response(
+                {"detail": "You have already submitted a hotel owner request."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Proceed with creating the profile
+        response = super().create(request, *args, **kwargs)
+
+        # Send notification to the user
+        send_custom_notification.delay(
+            user.id,
+            message="Your request to become a hotel owner has been submitted. You will be notified once it's reviewed by an admin.",
+            priority="info",
+            redirect_url="/hotel-owner-profile/"
+        )
+
+        return response
+
+    def perform_create(self, serializer):
+        # Save the profile with is_verified=False (pending admin approval)
+        serializer.save(user=self.request.user, is_verified=False)
+
 class HotelOwnerProfileView(RetrieveUpdateAPIView):
     """
     Retrieve or update the authenticated hotel owner's profile.
@@ -235,36 +274,4 @@ class HotelOwnerProfileView(RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.hotel_owner_profile
-
-
-class RequestHotelOwnerView(CreateAPIView):
-    """
-    POST /hotel-owner/request/
-    Allows authenticated customers to request to become hotel owners.
-    Sets role to BOTH and creates HotelOwnerProfile.
-    """
-    serializer_class = HotelOwnerProfileCreateRequestSerializer
-    permission_classes = [IsAuthenticated]
-    queryset = HotelOwnerProfile.objects.all()
-
-    def create(self, request, *args, **kwargs):
-        user = request.user
-
-        if user.role in ['HOTEL_OWNER', 'BOTH']:
-            return Response(
-                {"detail": "Already a hotel owner or request already submitted."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        user.role = 'BOTH'
-        user.save(update_fields=['role'])
-        response = super().create(request, *args, **kwargs)
-        send_custom_notification.delay(
-            user.id,
-            message="Your hotel owner request has been submitted.", priority="info",
-            redirect_url="/hotel-owner-profile/"
-        )
-        return response
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    

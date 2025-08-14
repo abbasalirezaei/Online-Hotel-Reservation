@@ -135,6 +135,16 @@ DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
 ---
 
+## ⚡️ Async & Notification Flows
+
+- All notification and email tasks are processed asynchronously via Celery.
+- Tasks include reservation cancellation, reminders, booking notifications, and global announcements.
+- Each task logs errors and successes for monitoring.
+- Idempotency checks prevent duplicate notifications.
+- Periodic tasks (e.g., daily check-in reminders) are scheduled via Celery Beat.
+
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository  
@@ -149,5 +159,3 @@ DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
 
 This project is licensed under the **GPL-3.0 License**.
 ```
-
----

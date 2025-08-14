@@ -130,8 +130,10 @@ def notify_checked_out(reservation_id):
 @shared_task
 def daily_checkin_reminders():
     """
+
     Periodic task: remind guests who have check-in tomorrow.
     Should be scheduled via Celery Beat.
+    
     """
     from datetime import date, timedelta
     tomorrow = date.today() + timedelta(days=1)

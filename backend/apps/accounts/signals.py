@@ -3,9 +3,9 @@ from django.dispatch import receiver
 
 
 # local imports
-from apps.accounts.tasks import send_activation_email_task
 from .models import User, CustomerProfile
 from apps.accounts.models import HotelOwnerProfile
+from apps.accounts.tasks import send_activation_email_task
 from apps.notifications.tasks import send_custom_notification    
 
 @receiver(post_save, sender=User)
