@@ -1,14 +1,14 @@
-from django.db.models.functions import TruncMonth, TruncDay, TruncWeek, TruncQuarter, TruncYear
+from datetime import date, timedelta, datetime
+from django.utils import timezone
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncDate, TruncMonth, TruncDay, TruncWeek, TruncQuarter, TruncYear
 from rest_framework.exceptions import PermissionDenied, ValidationError
-
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import generics, status
-from django.db.models import Count, Sum
 
-from django.db.models.functions import TruncDate
 from core.redis_client import redis_client
 
 
@@ -21,13 +21,9 @@ from .serializers import (
     OwnerReservationSerializer,
     ReservationInvoiceSerializer
 )
+from apps.hotel.models import Room
 from apps.reservations.models import Reservation, BookingStatus
-
-from apps.reservations.tasks import (
-    send_reservation_cancellation_email,
-    cancel_unpaid_reservation
-)
-
+from apps.reservations.tasks import send_reservation_cancellation_email
 
 @api_view(['GET'])
 def api_overview(request):
@@ -43,7 +39,7 @@ def api_overview(request):
         "Cancel Reservation": "<int:pk>/cancel/",
         "Owner Reservations": "owner/",
         "Reservation Invoice": "<int:pk>/invoice/",
-
+        
         # Reports
         "Daily & Summary Report": "report/",
         "Monthly Reservation Report": "report/monthly/?range=month|week|day|quarter|year",
@@ -53,12 +49,12 @@ def api_overview(request):
 # Reservation Views
 # -------------------------------------
 
-
 class RoomReservationCreateView(generics.CreateAPIView):
     """
     Endpoint: POST /api/v1/reservations/rooms/<room_id>/reserve/
 
-    Lets logged-in users make a reservation for a specific room.
+    Allows authenticated users to create a reservation for a specific room.
+    The room ID is typically passed in the serializer payload or URL.
     """
     queryset = Reservation.objects.all()
     serializer_class = ReservationCreateSerializer
@@ -68,47 +64,46 @@ class RoomReservationCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get room and dates from the request
+        # Extract data needed for the lock and final check
         room = serializer.validated_data['room']
         checkin_date = serializer.validated_data['checking_date']
         checkout_date = serializer.validated_data['checkout_date']
 
-        # Create a lock key for this room
+        # Define the lock key for Redis
         lock_key = f"lock:room:{room.id}"
-        lock_timeout_seconds = 15
+        lock_timeout_seconds = 15  # The lock will auto-release after 15s
 
+        # Acquire the lock from our redis_client
         lock = redis_client.lock(lock_key, timeout=lock_timeout_seconds)
 
         try:
-            # Try to lock the room for booking
-            if not lock.acquire(blocking=True, blocking_timeout=300):
+            # Attempt to acquire the lock. If it's not acquired within 600 seconds,
+            # it means the room is being booked by someone else right now.
+            if not lock.acquire(blocking=True, blocking_timeout=600):
                 raise ValidationError(
                     "This room is currently being booked by another user. Please try again in a moment.",
                     code='service_unavailable'
                 )
 
-            # Double-check if the room is still available
+            # --- CRITICAL SECTION ---
+            # Now that we have the lock, we perform one final check to ensure the
+            # room wasn't booked in the milliseconds before we acquired the lock.
             if not Reservation.objects.is_room_available(room.id, checkin_date, checkout_date):
                 raise ValidationError(
                     "Sorry, this room has just been booked for the selected dates.",
                     code='conflict'
                 )
 
-            # Save the reservation
+            # If the room is still available, proceed with saving the reservation.
+            # The serializer's create method will be called here.
             self.perform_create(serializer)
-            reservation = serializer.instance  
-
-            # Schedule auto-cancel if not paid in 10 minutes
-            cancel_unpaid_reservation.apply_async(args=[reservation.id], countdown=600)  
-
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
         finally:
-            # Release the lock
+            # Always release the lock when we're done.
             if lock.locked():
                 lock.release()
-
 
 class UserReservationListView(generics.ListAPIView):
     """
@@ -123,12 +118,10 @@ class UserReservationListView(generics.ListAPIView):
     def get_queryset(self):
         return (
             Reservation.objects
-            # Optimize related data fetching
-            .select_related("room", "room__hotel")
+            .select_related("room", "room__hotel")  # Optimize related data fetching
             .filter(user__user=self.request.user)
             .order_by("-booking_date")
         )
-
 
 class CancelReservationView(APIView):
     """
@@ -147,8 +140,7 @@ class CancelReservationView(APIView):
             BookingStatus.PENDING,
             BookingStatus.CONFIRMED
         ]:
-            raise ValidationError(
-                "Only pending or confirmed reservations can be canceled.")
+            raise ValidationError("Only pending or confirmed reservations can be canceled.")
 
         reservation.booking_status = BookingStatus.CANCELLED
         reservation.save(update_fields=['booking_status'])
@@ -157,7 +149,6 @@ class CancelReservationView(APIView):
         send_reservation_cancellation_email.delay(reservation.id)
 
         return Response({"detail": "Reservation cancelled."}, status=status.HTTP_200_OK)
-
 
 class HotelOwnerReservationListView(generics.ListAPIView):
     """
@@ -172,12 +163,10 @@ class HotelOwnerReservationListView(generics.ListAPIView):
     def get_queryset(self):
         return (
             Reservation.objects
-            .select_related("room", "user", "user__user")
+            .select_related("room", "user", "user__user")  
             .filter(room__hotel__owner=self.request.user)
             .order_by("-booking_date")
         )
-
-
 class ReservationInvoiceAPIView(generics.RetrieveAPIView):
     """
     Endpoint: GET /api/v1/reservations/<int:pk>/invoice/
@@ -199,10 +188,10 @@ class ReservationInvoiceAPIView(generics.RetrieveAPIView):
         reservation = super().get_object()
 
         if reservation.user.user != self.request.user and not self.request.user.is_staff:
-            raise PermissionDenied(
-                "You are not authorized to view this invoice.")
+            raise PermissionDenied("You are not authorized to view this invoice.")
 
         return reservation
+    
 
 
 class ReservationReportView(APIView):
@@ -236,7 +225,6 @@ class ReservationReportView(APIView):
         ).order_by("-booking_day")
 
         return Response(data)
-
 
 class MonthlyReservationReportView(APIView):
     """
@@ -275,6 +263,7 @@ class MonthlyReservationReportView(APIView):
         return Response(report)
 
 
+
 class RoomWiseReservationReportView(APIView):
     """
     GET /report/by-room/
@@ -299,3 +288,5 @@ class RoomWiseReservationReportView(APIView):
         ).order_by("-total_bookings")
 
         return Response(data)
+
+

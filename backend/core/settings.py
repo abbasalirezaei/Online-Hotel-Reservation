@@ -1,9 +1,9 @@
 from datetime import timedelta
 from decouple import config
 from pathlib import Path
-import os ,sys
+import os
+import sys
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 
 DEBUG = config('DEBUG', default=False, cast=bool)
@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django_filters',
     'django_celery_beat',
     "celery",
+    'drf_yasg',
 
 ]
 
@@ -209,13 +210,12 @@ if ENABLE_DEBUG_TOOLBAR:
     INSTALLED_APPS += [
         "debug_toolbar",
     ]
-    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")  
-
+    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
 
     INTERNAL_IPS = type(str('c'), (), {'__contains__': lambda *a: True})()
     DEBUG_TOOLBAR_CONFIG = {
         "ROOT_TAG_EXTRA_ATTRS": "data-turbo-permanent hx-preserve",
- 
+
     }
 
 
@@ -225,7 +225,7 @@ DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.settings.SettingsPanel',
     'debug_toolbar.panels.headers.HeadersPanel',
     'debug_toolbar.panels.request.RequestPanel',
-    'debug_toolbar.panels.sql.SQLPanel',  
+    'debug_toolbar.panels.sql.SQLPanel',
     'debug_toolbar.panels.staticfiles.StaticFilesPanel',
     'debug_toolbar.panels.templates.TemplatesPanel',
     'debug_toolbar.panels.cache.CachePanel',

@@ -12,12 +12,16 @@ python-decouple
 django-filter
 django-daisy
 django-debug-toolbar
+drf-yasg
+
 
 # test
 pytest 
 pytest-django 
 factory_boy 
 pytest-cov
+
+
 
 # background task
 
