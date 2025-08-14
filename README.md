@@ -92,12 +92,12 @@ This project delivers a robust API architecture, background task processing, and
 
 4. **Run database migrations**
    ```bash
-   docker-compose exec django-backend python manage.py migrate
+   docker-compose backend python manage.py migrate
    ```
 
-5. **Create a superuser**
+5. **Create a superuser**  
    ```bash
-   docker-compose exec django-backend python manage.py createsuperuser
+   docker-compose backend python manage.py createsuperuser
    ```
 
 6. **Access services**
@@ -108,12 +108,12 @@ This project delivers a robust API architecture, background task processing, and
 
 Run the entire test suite:
 ```bash
-docker-compose exec django-backend pytest
+docker-compose backend pytest
 ```
 
 Run a specific test module:
 ```bash
-docker-compose exec django-backend pytest apps/bookings/tests/
+docker-compose backend pytest apps/bookings/tests/
 ```
 
 ---
