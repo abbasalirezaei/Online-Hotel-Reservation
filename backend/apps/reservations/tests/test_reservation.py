@@ -15,8 +15,8 @@ from apps.reservations.tasks import cancel_unpaid_reservation
 def test_create_reservation_success():
     client = APIClient()
 
-    owner_user = UserFactory(role='HOTEL_OWNER')
-    customer_user = UserFactory(role='CUSTOMER')
+    owner_user = UserFactory(role='hotel_owner')
+    customer_user = UserFactory(role='customer')
 
     HotelOwnerProfile.objects.create(user=owner_user)
     CustomerProfile.objects.get_or_create(user=customer_user)
@@ -47,8 +47,8 @@ def test_create_reservation_success():
 def test_create_reservation_fails_with_date_conflict():
     client = APIClient()
 
-    owner_user = UserFactory(role='HOTEL_OWNER')
-    customer_user = UserFactory(role='CUSTOMER')
+    owner_user = UserFactory(role='hotel_owner')
+    customer_user = UserFactory(role='customer')
 
     HotelOwnerProfile.objects.create(user=owner_user)
     customer_profile, _ = CustomerProfile.objects.get_or_create(user=customer_user)
@@ -88,8 +88,8 @@ def test_create_reservation_fails_with_date_conflict():
 def test_create_reservation_fails_if_lock_cannot_be_acquired(mock_redis_lock):
     client = APIClient()
 
-    owner_user = UserFactory(role='HOTEL_OWNER')
-    customer_user = UserFactory(role='CUSTOMER')
+    owner_user = UserFactory(role='hotel_owner')
+    customer_user = UserFactory(role='customer')
 
     HotelOwnerProfile.objects.create(user=owner_user)
     CustomerProfile.objects.get_or_create(user=customer_user)
@@ -123,8 +123,8 @@ def test_create_reservation_fails_if_lock_cannot_be_acquired(mock_redis_lock):
 def test_create_reservation_fails_if_room_booked_during_lock(mock_is_available, mock_redis_lock):
     client = APIClient()
 
-    owner_user = UserFactory(role='HOTEL_OWNER')
-    customer_user = UserFactory(role='CUSTOMER')
+    owner_user = UserFactory(role='hotel_owner')
+    customer_user = UserFactory(role='customer')
     HotelOwnerProfile.objects.create(user=owner_user)
     CustomerProfile.objects.get_or_create(user=customer_user)
 
@@ -156,7 +156,7 @@ def test_create_reservation_fails_if_room_booked_during_lock(mock_is_available, 
 
 @pytest.mark.django_db
 def test_cancel_unpaid_reservation_task_cancels_pending_reservation():
-    user = UserFactory(role='CUSTOMER')
+    user = UserFactory(role='customer')
     customer_profile, _ = CustomerProfile.objects.get_or_create(user=user)
     hotel = HotelFactory()
     room = RoomFactory(hotel=hotel)
@@ -176,7 +176,7 @@ def test_cancel_unpaid_reservation_task_cancels_pending_reservation():
 
 @pytest.mark.django_db
 def test_cancel_unpaid_reservation_task_does_not_cancel_confirmed():
-    user = UserFactory(role='CUSTOMER')
+    user = UserFactory(role='customer')
     customer_profile, _ = CustomerProfile.objects.get_or_create(user=user)
     hotel = HotelFactory()
     room = RoomFactory(hotel=hotel)

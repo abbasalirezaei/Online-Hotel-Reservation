@@ -30,7 +30,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('hotel_owner', 'Hotel Owner'),
         ('customer', 'Customer'),
     )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')  # <-- Make sure this exists
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')  
     email = models.EmailField(_('email address'), unique=True)
     phone_number = models.CharField(
         max_length=11,

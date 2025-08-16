@@ -81,7 +81,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
             email=validated_data["email"],
             phone_number=validated_data["phone_number"],
             password=password,
-            role=User.Role.CUSTOMER,
+            role='customer',
             is_active=False  # Require email activation
         )
 
@@ -97,6 +97,8 @@ class ActivationCodeSerializer(serializers.Serializer):
     
 class ResendActivationCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+    
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
     user = None  # Add a user field to store the user instance

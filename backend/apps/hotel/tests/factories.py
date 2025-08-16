@@ -10,7 +10,7 @@ class HotelFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Hotel
 
-    owner = factory.SubFactory(UserFactory, role='HOTEL_OWNER')
+    owner = factory.SubFactory(UserFactory, role='hotel_owner')
     name = factory.Sequence(lambda n: f"Hotel {n}")
     description = "A nice hotel for testing."
     phone_number = "+989123456789"

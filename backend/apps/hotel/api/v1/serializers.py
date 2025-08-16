@@ -4,11 +4,23 @@ from django.utils.text import slugify
 from django.db import transaction
 from django.db.models import Avg, Count
 
-from apps.hotel.models.hotel_model import Hotel, HotelLocation, HotelImage
+from apps.hotel.models.hotel_model import Hotel, HotelLocation, HotelImage, Amenity
 from apps.hotel.models.room_model import Room, RoomImage
 from apps.accounts.models import User
 
+
+class AmenitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Amenity
+        fields = ['id', 'name', 'icon', 'description']
+
+    def validate_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Amenity name cannot be empty.")
+        return value
 # ----------- Hotel Image Serializer -----------
+
+
 class HotelImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -31,6 +43,7 @@ class HotelImageSerializer(serializers.ModelSerializer):
 
 # ----------- Hotel Location Serializer -----------
 
+
 class HotelLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = HotelLocation
@@ -46,75 +59,98 @@ class HotelLocationSerializer(serializers.ModelSerializer):
 
 # ----------- Hotel List Serializer -----------
 
+
 class HotelListSerializer(serializers.ModelSerializer):
     images = HotelImageSerializer(many=True)
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    room_count = serializers.SerializerMethodField()
-    total_reviews = serializers.SerializerMethodField()
+    room_count = serializers.IntegerField()
+    total_reviews = serializers.IntegerField()
 
     class Meta:
         model = Hotel
         fields = [
-            'id', 'owner', 'name', 
-            'images', 'room_count', 'total_reviews'   
+            'id',  'name', 'owner',
+            'images', 'room_count', 'total_reviews'
         ]
-        read_only_fields = ["owner",]
-
-    def get_room_count(self, obj):
-        return obj.rooms.count()
-
-    def get_total_reviews(self, obj):
-        return obj.reviews.aggregate(Count('id'))['id__count']    
+        read_only_fields = ["owner", "room_count", "total_reviews"]
 
 # ----------- Hotel Create Serializer -----------
+
 
 class HotelCreateSerializer(serializers.ModelSerializer):
     uploaded_images = serializers.ListField(
         child=serializers.ImageField(
-            max_length=1000000, allow_empty_file=False, use_url=False),
-        write_only=True)
+            max_length=1000000, allow_empty_file=False, use_url=False
+        ),
+        write_only=True,
+        required=False
+    )
+    amenities = serializers.PrimaryKeyRelatedField(
+        queryset=Amenity.objects.all(), many=True
+    )
 
     class Meta:
         model = Hotel
-        fields = ['name',
-                  'phone_number',
-                  'email',
-                  'website',
-                  'main_image',
-                  'has_parking',
-                  'policy',
-                  'amenities',
-                  'description',
-                  "uploaded_images"
-                  ]
+        fields = [
+            'name', 'phone_number', 'email', 'website', 'main_image',
+            'has_parking', 'policy', 'amenities', 'description', 'uploaded_images'
+        ]
 
     def create(self, validated_data):
-        ploaded_images = validated_data.pop("uploaded_images")
+        uploaded_images = validated_data.pop("uploaded_images", [])
+        amenities = validated_data.pop("amenities")
         user = self.context['request'].user
+
         with transaction.atomic():
-            hotel = Hotel.objects.create(owner=user, **validated_data)
-            for image_data in ploaded_images:
+            hotel = Hotel.objects.create(
+                owner=user, is_verified=False, **validated_data)
+            hotel.amenities.set(amenities)
+            for image_data in uploaded_images:
                 HotelImage.objects.create(hotel=hotel, image=image_data)
+
         return hotel
 
 # ----------- Hotel Detail Serializer -----------
+
 
 class HotelDetailSerializer(serializers.ModelSerializer):
     location = HotelLocationSerializer(read_only=True)
     images = HotelImageSerializer(many=True, read_only=True)
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    room_count = serializers.SerializerMethodField()
+    room_count = serializers.IntegerField()
+    total_reviews = serializers.IntegerField()
+    amenities = AmenitySerializer(many=True, read_only=True)
 
     class Meta:
         model = Hotel
         fields = [
             'id', 'owner', 'name', 'description', 'phone_number',
             'email', 'website', 'created_at', 'has_parking', 'policy',
-            'amenities', 'location', 'images', 'room_count'
+            'amenities', 'location', 'images', 'room_count', 'total_reviews', 'main_image'
         ]
+        read_only_fields = ['owner', 'room_count', 'total_reviews']
 
-    def get_room_count(self, obj):
-        return obj.rooms.count()
+    def validate(self, attrs):
+        # Only apply these validations during update
+        if self.instance:
+            if 'name' in attrs and not attrs['name'].strip():
+                raise serializers.ValidationError(
+                    {"name": "Hotel name cannot be empty."})
+
+            if 'policy' in attrs and len(attrs['policy']) < 10:
+                raise serializers.ValidationError(
+                    {"policy": "Policy must be at least 10 characters long."})
+
+            if 'amenities' in attrs:
+                allowed_keys = {'wifi', 'pool', 'breakfast', 'parking'}
+                invalid_keys = set(attrs['amenities'].keys()) - allowed_keys
+                if invalid_keys:
+                    raise serializers.ValidationError({
+                        "amenities": f"Invalid keys: {', '.join(invalid_keys)}. Allowed keys are: {', '.join(allowed_keys)}."
+                    })
+
+        return attrs
+
 
 '''
 |==================================================|
@@ -123,6 +159,8 @@ class HotelDetailSerializer(serializers.ModelSerializer):
 '''
 
 # ----------- Room Image Serializer -----------
+
+
 class RoomImageSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
 
@@ -138,6 +176,8 @@ class RoomImageSerializer(serializers.ModelSerializer):
         return None
 
 # ----------- Room List Serializer -----------
+
+
 class RoomListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
@@ -147,6 +187,8 @@ class RoomListSerializer(serializers.ModelSerializer):
         read_only_fields = ['hotel',]
 
 # ----------- Room Detail Serializer -----------
+
+
 class RoomDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Room
@@ -171,6 +213,8 @@ class RoomDetailSerializer(serializers.ModelSerializer):
         ]
 
 # ----------- Room Create/Update Serializer -----------
+
+
 class RoomCreateSerializer(serializers.ModelSerializer):
     hotel = serializers.PrimaryKeyRelatedField(queryset=Hotel.objects.all())
     slug = serializers.SlugField(required=False, read_only=True)

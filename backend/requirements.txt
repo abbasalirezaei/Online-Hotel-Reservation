@@ -13,7 +13,7 @@ django-filter
 django-daisy
 django-debug-toolbar
 drf-yasg
-
+django-querycount
 
 # test
 pytest 
@@ -22,9 +22,17 @@ factory_boy
 pytest-cov
 
 
+# debuging
+django-debug-toolbar
+django-silk
 
 # background task
 
 celery
 redis
 django-celery-beat
+
+
+#chaching
+redis[hiredis]
+django-redis

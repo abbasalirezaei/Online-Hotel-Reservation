@@ -3,7 +3,6 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models.user_model import User
 from .models.customer_profile_model import CustomerProfile
 from .models.hotel_owner_profile_model import HotelOwnerProfile
-
 # Inline for CustomerProfile
 class CustomerProfileInline(admin.StackedInline):
     model = CustomerProfile
@@ -61,9 +60,21 @@ class CustomerProfileAdmin(admin.ModelAdmin):
     list_filter = ('gender', 'newsletter_optin')
     readonly_fields = ('slug',)
 
+
+
 @admin.register(HotelOwnerProfile)
 class HotelOwnerProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'company_name', 'business_license_number', 'is_verified', 'phone_number')
     search_fields = ('user__email', 'company_name', 'business_license_number')
     list_filter = ('is_verified',)
     readonly_fields = ('slug',)
+    actions = ['mark_as_verified']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(user__role='hotel_owner')
+
+    @admin.action(description="Mark selected profiles as verified")
+    def mark_as_verified(self, request, queryset):
+        updated = queryset.update(is_verified=True)
+        self.message_user(request, f"{updated} profile(s) successfully marked as verified.")

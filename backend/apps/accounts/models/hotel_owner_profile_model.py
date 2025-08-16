@@ -9,7 +9,7 @@ class HotelOwnerProfile(models.Model):
         'accounts.User',
         on_delete=models.CASCADE,
         related_name='hotel_owner_profile',
-        limit_choices_to={'role': 'HOTEL_OWNER'}
+        limit_choices_to={'role': 'hotel_owner'}
     )
     company_name = models.CharField(max_length=100)
     business_license_number = models.CharField(max_length=50, unique=True)

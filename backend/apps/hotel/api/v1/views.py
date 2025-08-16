@@ -1,5 +1,8 @@
 # Core Django & DRF
+from django.db import connection, reset_queries
 from django.shortcuts import get_object_or_404
+from django.db.models import Count, F
+
 from rest_framework import generics
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
@@ -7,7 +10,8 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 # Local apps
 from .permissions import IsHotelOwnerOrReadOnly
 from .serializers import (
@@ -22,6 +26,8 @@ from apps.hotel.models import (
 )
 from apps.reservations.models import Reservation
 from .filters import RoomFilter
+from apps.notifications.tasks import send_custom_notification
+
 
 
 @api_view(['GET'])
@@ -40,9 +46,10 @@ def api_overview(request):
 
 #  Hotel Views (List and Create)
 
+
 class HotelListCreateView(generics.ListCreateAPIView):
     """
-    Lists all verified hotels (GET) or allows authenticated owners to create new hotels (POST).
+    Lists all verified hotels (GET) or allows verified owners to create new hotels (POST).
     Optimized for performance with limited fields and prefetching.
     """
     permission_classes = [IsHotelOwnerOrReadOnly]
@@ -51,20 +58,48 @@ class HotelListCreateView(generics.ListCreateAPIView):
     ordering_fields = ['created_at']
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    def get_queryset(self):
-        return (
-            Hotel.verified
-            .only("id", "name", "description", "owner_id", "created_at")
-            .prefetch_related("images", "location")
-        )
+    # Cache for 15 minutes
+    @method_decorator(cache_page(60 * 15, key_prefix='hotel_list'))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
+    def get_queryset(self):
+        queryset = Hotel.verified.annotate(
+            room_count=Count('rooms'),
+            total_reviews=Count('reviews')
+        ).only(
+            "id", "name", "description", "owner_id",
+            "created_at"
+        ).prefetch_related("images").select_related("owner", "location")
+        return (
+            queryset
+        )
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        # Proceed with creating the profile
+        response = super().create(request, *args, **kwargs)
+
+        # Send notification to the user
+        send_custom_notification.delay(
+            user.id,
+            message="Your request to create a hotel has been submitted. You will be notified once it's reviewed by an admin.",
+            priority="info",
+            redirect_url="//"
+        )
+        return response
     def get_serializer_class(self):
         return HotelCreateSerializer if self.request.method == 'POST' else HotelListSerializer
 
 
-class HotelDetailView(generics.RetrieveAPIView):
+class HotelDetailView(generics.RetrieveUpdateAPIView):
     """Retrieves detailed information for a specific verified hotel by ID."""
-    queryset = Hotel.verified.all()
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    queryset = Hotel.verified.annotate(
+        room_count=Count('rooms'),
+        total_reviews=Count('reviews')
+    ).select_related(
+        'owner', 'location'
+    ).prefetch_related('images').all()
     serializer_class = HotelDetailSerializer
 
 
@@ -77,7 +112,8 @@ class HotelLocationView(generics.ListCreateAPIView):
         return HotelLocation.objects.filter(hotel__owner=self.request.user)
 
     def perform_create(self, serializer):
-        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        hotel = get_object_or_404(
+            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         if hasattr(hotel, 'location'):
             raise ValidationError("This hotel already has a location.")
         serializer.save(hotel=hotel)
@@ -92,7 +128,8 @@ class HotelImageListCreateView(generics.ListCreateAPIView):
         return HotelImage.objects.filter(hotel_id=self.kwargs['hotel_id'])
 
     def perform_create(self, serializer):
-        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        hotel = get_object_or_404(
+            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         serializer.save(hotel=hotel)
 
 
@@ -119,7 +156,8 @@ class RoomListCreateView(generics.ListCreateAPIView):
         return RoomCreateSerializer if self.request.method == 'POST' else RoomListSerializer
 
     def perform_create(self, serializer):
-        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        hotel = get_object_or_404(
+            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         serializer.save(hotel=hotel)
 
 

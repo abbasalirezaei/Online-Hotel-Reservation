@@ -14,7 +14,7 @@ urlpatterns = [
     # User Registration & Activation
     path('register/', views.RegistrationApiView.as_view(), name='auth_register'),
     path('activate/code/', views.VerifyActivationCodeAPIView.as_view(), name='verify-activation-code'),
-    path('activation/resend/', views.ResendActivationCodeAPIView.as_view(), name='activation-resend'),
+    path('activation/resend/', views.ResendActivationCodeView.as_view(), name='activation-resend'),
 
     # Hotel Owner Request
     path('request-hotel-owner/', views.RequestHotelOwnerView.as_view(), name='request-hotel-owner'),

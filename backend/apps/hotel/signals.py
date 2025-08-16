@@ -1,54 +1,49 @@
-# from django.db.models.signals import pre_save
-# from django.dispatch import receiver
-# from django.core.mail import send_mail
-# from django.conf import settings
-# from django.utils import timezone
-# # from .models import Booking
+from django.db.models.signals import post_save, post_delete , pre_save
+from django.dispatch import receiver
+from .models import Hotel
+from django.core.cache import cache
+from apps.notifications.tasks import send_custom_notification
 
 
+@receiver([post_save, post_delete], sender=Hotel)
+def invalidate_hotel_cache(sender, instance, **kwargs):
+    """
+    Invalidate hotel list caches when a hotel is created, updated, or deleted
+    """
+    print("Clearing hotel cache")
+    
+    # Clear hotel list caches
+    cache.delete_pattern('*hotel_list*')
 
 
-# @receiver(pre_save, sender=Booking)
-# def set_cancelled_at(sender, instance, **kwargs):
-#     if not instance.pk:
-#         # Booking new instance
-#         return
+@receiver(pre_save, sender=Hotel)
+def store_previous_is_verified(sender, instance, **kwargs):
+    """
+    Store the previous 'is_verified' state before saving, so we can compare after save.
+    """
+    if instance.pk:
+        try:
+            previous = Hotel.objects.get(pk=instance.pk)
+            instance._previous_is_verified = previous.is_verified
+        except Hotel.DoesNotExist:
+            instance._previous_is_verified = None
+    else:
+        # New hotel creation
+        instance._previous_is_verified = None
 
-#     try:
-#         previous = Booking.objects.get(pk=instance.pk)
-#     except Booking.DoesNotExist:
-#         return
 
-#     if previous.booking_status != 'cancelled' and instance.booking_status == 'cancelled':
-#         instance.cancelled_at = timezone.now()
-
-
-
-
-# @receiver(pre_save, sender=Booking)
-# def send_booking_confirmation_email(sender, instance, **kwargs):
-#     if not instance.pk:
-#         return   # Booking new instance
-
-#     try:
-#         previous = Booking.objects.get(pk=instance.pk)
-#     except Booking.DoesNotExist:
-#         return
-
-#     # If booking status changed from pending to confirmed:
-#     if previous.booking_status != 'confirmed' and instance.booking_status == 'confirmed':
-#         subject = 'تأیید رزرو شما'
-#         message = f"""
-#         {instance.customer.first_name} عزیز،
-
-#         رزرو شما برای اتاق {instance.room.title} با موفقیت تأیید شد.
-#         تاریخ ورود: {instance.checking_date}
-#         تاریخ خروج: {instance.checkout_date}
-#         تعداد مهمان: {instance.guests_count}
-#         مبلغ کل: {instance.total_price} تومان
-
-#         با تشکر از انتخاب شما.
-#         """
-#         recipient_email = instance.email
-#         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [recipient_email])
-
+@receiver(post_save, sender=Hotel)
+def notify_owner_on_verification(sender, instance, created, **kwargs):
+    """
+    Send a notification to the hotel owner when their hotel gets verified.
+    """
+    if not created:
+        prev_status = getattr(instance, "_previous_is_verified", None)
+        # Check if changed from False to True
+        if prev_status is False and instance.is_verified is True:
+            send_custom_notification.delay(
+                instance.owner.id,
+                message=f"Your hotel '{instance.name}' has been verified!",
+                priority="success",
+                redirect_url=f"/hotels/{instance.id}/"
+            )

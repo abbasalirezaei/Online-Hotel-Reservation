@@ -118,27 +118,28 @@ class VerifyActivationCodeAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ResendActivationCodeAPIView(APIView):
+
+class ResendActivationCodeView(generics.GenericAPIView):
     """
     Resends activation code via email for inactive users.
     """
+    serializer_class = ResendActivationCodeSerializer
 
-    def post(self, request):
-        serializer = ResendActivationCodeSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data["email"]
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                return Response({"error": "No account found with this email."}, status=status.HTTP_404_NOT_FOUND)
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-            if user.is_active:
-                return Response({"message": "Account is already activated."}, status=status.HTTP_200_OK)
+        email = serializer.validated_data["email"]
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "No account found with this email."}, status=status.HTTP_404_NOT_FOUND)
 
-            send_activation_email_task.delay(user.id, user.email)
-            return Response({"message": "Activation code resent successfully."}, status=status.HTTP_200_OK)
+        if user.is_active:
+            return Response({"message": "Account is already activated."}, status=status.HTTP_200_OK)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        send_activation_email_task.delay(user.id, user.email)
+        return Response({"message": "Activation code resent successfully."}, status=status.HTTP_200_OK)
 
 
 class PasswordResetView(generics.GenericAPIView):
@@ -262,8 +263,11 @@ class RequestHotelOwnerView(CreateAPIView):
         return response
 
     def perform_create(self, serializer):
-        # Save the profile with is_verified=False (pending admin approval)
-        serializer.save(user=self.request.user, is_verified=False)
+        user = self.request.user
+        user.role = "hotel_owner"
+        user.save(update_fields=["role"])
+
+        serializer.save(user=user, is_verified=False)
 
 class HotelOwnerProfileView(RetrieveUpdateAPIView):
     """

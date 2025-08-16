@@ -9,7 +9,7 @@ class CustomerProfile(models.Model):
         'accounts.User',
         on_delete=models.CASCADE,
         related_name='customer_profile',
-        limit_choices_to={'role': 'CUSTOMER'}
+        limit_choices_to={'role': 'customer'}
     )
     full_name = models.CharField(max_length=150)
     national_id = models.CharField(max_length=10, blank=True)

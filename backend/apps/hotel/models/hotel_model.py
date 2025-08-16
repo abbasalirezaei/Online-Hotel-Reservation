@@ -34,7 +34,12 @@ class Hotel(models.Model):
     has_parking = models.BooleanField(default=False)
 
     policy = models.TextField()
-    amenities = models.JSONField(default=dict, blank=True)
+    amenities = models.ManyToManyField(
+        'Amenity',
+        related_name='hotels',
+        blank=True,
+        help_text=_("Select amenities available at the hotel.")
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -60,6 +65,14 @@ class Hotel(models.Model):
     def __str__(self):
         return self.name
 
+
+class Amenity(models.Model):
+    name = models.CharField(max_length=100)
+    icon = models.ImageField(upload_to='amenities/icons/', null=True, blank=True)  # Optional
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
 
 class HotelLocation(models.Model):
     hotel = models.OneToOneField(Hotel, on_delete=models.CASCADE, related_name='location')

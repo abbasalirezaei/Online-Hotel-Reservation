@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'django_celery_beat',
     "celery",
     'drf_yasg',
+    'silk'
+
 
 ]
 
@@ -57,6 +59,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'silk.middleware.SilkyMiddleware',
+
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -232,3 +236,28 @@ DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.signals.SignalsPanel',
     'debug_toolbar.panels.logging.LoggingPanel',
 ]
+
+
+# querycount
+
+# QUERYCOUNT = {
+#     'THRESHOLDS': {
+#         'MEDIUM': 20,
+#         'HIGH': 50,
+#         'MIN': 1,
+#     },
+#     'DISPLAY_DUPLICATES': 10,
+#     'IGNORE_REQUEST_PATTERNS': [r'^/admin/'],
+#     'RESPONSE_HEADER': 'X-Django-Querycount',
+# }
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
