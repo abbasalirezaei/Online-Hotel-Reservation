@@ -228,11 +228,9 @@ class OnwerHotelListView(generics.ListAPIView):
         page = self.paginate_queryset(queryset)
         hotels = page or queryset
 
-        # serialize base fields (must include id so we can attach extras)
         serializer = self.get_serializer(hotels, many=True)
         data = serializer.data
 
-        # map id -> index
         id_index = {h['id']: i for i, h in enumerate(data)}
 
         for hotel in hotels:
@@ -240,7 +238,6 @@ class OnwerHotelListView(generics.ListAPIView):
             if idx is None:
                 continue
 
-            # attach annotated numeric stats (safe conversions)
             data[idx]['reservations_count'] = int(getattr(hotel, 'reservations_count', 0) or 0)
             total_revenue = getattr(hotel, 'total_revenue', 0) or 0
             try:
@@ -251,7 +248,6 @@ class OnwerHotelListView(generics.ListAPIView):
             avg_rating = getattr(hotel, 'avg_rating', None)
             data[idx]['avg_rating'] = float(avg_rating) if avg_rating is not None else None
 
-            # popular rooms (top 3 by reservations). Adjust related names if different.
             top_rooms = (
                 Room.objects.filter(hotel=hotel)
                 .annotate(reservations_count=Count('reservations'))
