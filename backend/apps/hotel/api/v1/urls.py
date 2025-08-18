@@ -28,6 +28,8 @@ urlpatterns = [
     path('hotels/<int:hotel_id>/rooms/', views.RoomListCreateView.as_view(), name='room-list-create'),  # List or create rooms for a hotel
     path('rooms/<slug:slug>/', views.RoomDetailView.as_view(), name='room-detail'),  # Room detail view by slug
 
+
+    path('hotels/owner/', views.OnwerHotelListView.as_view(), name='my-hotels'),
     # Room image endpoints
     path('rooms/<int:room_id>/images/', views.RoomImageListCreateView.as_view(), name='room-images'),  # List or upload images for a room
 

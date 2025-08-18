@@ -1,7 +1,7 @@
 # Core Django & DRF
 from django.db import connection, reset_queries
 from django.shortcuts import get_object_or_404
-from django.db.models import Count, F
+from django.db.models import Count, F, Sum, Avg
 
 from rest_framework import generics
 from rest_framework.decorators import api_view
@@ -133,6 +133,8 @@ class HotelLocationDetailView(generics.RetrieveUpdateDestroyAPIView):
         return HotelLocation.objects.filter(hotel_id=hotel_id)
 
 
+
+
 # CRUD operations Hotel Images
 
 
@@ -192,6 +194,74 @@ class HotelAmenitiesViewSet(viewsets.ModelViewSet):
         return Response(status=204)
 
 
+
+
+class OnwerHotelListView(generics.ListAPIView):
+    """
+    Lists hotels owned by the authenticated user along with stats:
+      - reservations_count
+      - total_revenue
+      - avg_rating
+      - popular_rooms (top 3 rooms by reservations)
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = HotelListSerializer
+
+    def get_queryset(self):
+        # Ensure serializer fields room_count and total_reviews exist on each Hotel instance
+        return (
+            Hotel.verified
+            .filter(owner=self.request.user)
+            .annotate(
+                room_count=Count('rooms', distinct=True),
+                total_reviews=Count('reviews', distinct=True),
+                reservations_count=Count('rooms__reservations', distinct=True),
+                total_revenue=Sum('rooms__reservations__total_price'),
+                avg_rating=Avg('reviews__rating'),
+            )
+            .select_related('location', 'owner')
+            .prefetch_related('images')
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        page = self.paginate_queryset(queryset)
+        hotels = page or queryset
+
+        # serialize base fields (must include id so we can attach extras)
+        serializer = self.get_serializer(hotels, many=True)
+        data = serializer.data
+
+        # map id -> index
+        id_index = {h['id']: i for i, h in enumerate(data)}
+
+        for hotel in hotels:
+            idx = id_index.get(hotel.id)
+            if idx is None:
+                continue
+
+            # attach annotated numeric stats (safe conversions)
+            data[idx]['reservations_count'] = int(getattr(hotel, 'reservations_count', 0) or 0)
+            total_revenue = getattr(hotel, 'total_revenue', 0) or 0
+            try:
+                data[idx]['total_revenue'] = float(total_revenue)
+            except Exception:
+                data[idx]['total_revenue'] = total_revenue
+
+            avg_rating = getattr(hotel, 'avg_rating', None)
+            data[idx]['avg_rating'] = float(avg_rating) if avg_rating is not None else None
+
+            # popular rooms (top 3 by reservations). Adjust related names if different.
+            top_rooms = (
+                Room.objects.filter(hotel=hotel)
+                .annotate(reservations_count=Count('reservations'))
+                .order_by('-reservations_count')[:3]
+            )
+            data[idx]['popular_rooms'] = RoomListSerializer(top_rooms, many=True, context={'request': request}).data
+
+        if page is not None:
+            return self.get_paginated_response(data)
+        return Response(data)
 # -> Room Views
 
 class RoomListCreateView(generics.ListCreateAPIView):
