@@ -73,6 +73,7 @@ class Amenity(models.Model):
 
     def __str__(self):
         return self.name
+    
 
 class HotelLocation(models.Model):
     hotel = models.OneToOneField(Hotel, on_delete=models.CASCADE, related_name='location')

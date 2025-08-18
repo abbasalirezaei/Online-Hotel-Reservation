@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models.hotel_model import Hotel, HotelLocation, HotelImage, Amenity
 from .models.room_model import Room, RoomImage
-
+from apps.notifications.tasks import send_custom_notification
 
 class HotelImageInline(admin.TabularInline):
     model = HotelImage
@@ -37,6 +37,15 @@ class HotelAdmin(admin.ModelAdmin):
     @admin.action(description="Mark selected hotels as verified")
     def mark_as_verified(self, request, queryset):
         updated = queryset.update(is_verified=True)
+        for hotel in queryset:
+            if hotel.owner:
+                send_custom_notification.delay(
+                    hotel.owner.id,
+                    message=f"Your hotel '{hotel.name}' has been verified!",
+                    priority="success",
+                    redirect_url=f"/hotels/{hotel.id}/"
+                )
+
         self.message_user(request, f"{updated} hotels successfully marked as verified.")
 
     @admin.action(description="Mark selected hotels as unverified")

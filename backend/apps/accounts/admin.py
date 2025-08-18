@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models.user_model import User
 from .models.customer_profile_model import CustomerProfile
 from .models.hotel_owner_profile_model import HotelOwnerProfile
+from apps.notifications.tasks import send_custom_notification
+
 # Inline for CustomerProfile
 class CustomerProfileInline(admin.StackedInline):
     model = CustomerProfile
@@ -66,6 +68,7 @@ class CustomerProfileAdmin(admin.ModelAdmin):
 class HotelOwnerProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'company_name', 'business_license_number', 'is_verified', 'phone_number')
     search_fields = ('user__email', 'company_name', 'business_license_number')
+    list_editable = ('is_verified',)
     list_filter = ('is_verified',)
     readonly_fields = ('slug',)
     actions = ['mark_as_verified']
@@ -77,4 +80,12 @@ class HotelOwnerProfileAdmin(admin.ModelAdmin):
     @admin.action(description="Mark selected profiles as verified")
     def mark_as_verified(self, request, queryset):
         updated = queryset.update(is_verified=True)
+        if updated:
+            for profile in queryset:
+                send_custom_notification.delay(
+                    profile.user.id,
+                    message=f"Your hotel owner profile '{profile.company_name}' has been verified!",
+                    priority="success",
+                    redirect_url=f"/hotel-owner/{profile.user.id}/"
+                )
         self.message_user(request, f"{updated} profile(s) successfully marked as verified.")

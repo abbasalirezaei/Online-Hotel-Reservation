@@ -10,9 +10,14 @@ class IsHotelOwnerOrReadOnly(BasePermission):
         if request.method in SAFE_METHODS:
             return True
         user = request.user
+        profile = getattr(user, 'hotel_owner_profile', None)
         return (
             user.is_authenticated and
-            user.role == 'hotel_owner' and
-            hasattr(user, 'hotel_owner_profile') and
-            user.hotel_owner_profile.is_verified
+            getattr(user, 'role', None) == 'hotel_owner' and
+            profile and profile.is_verified
         )
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        return obj.hotel.owner == request.user

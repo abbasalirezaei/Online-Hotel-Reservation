@@ -14,7 +14,7 @@ django-daisy
 django-debug-toolbar
 drf-yasg
 django-querycount
-
+django-daisy
 # test
 pytest 
 pytest-django 

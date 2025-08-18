@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
+from rest_framework import viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.utils.decorators import method_decorator
@@ -18,16 +19,15 @@ from .serializers import (
     HotelListSerializer, HotelDetailSerializer, HotelCreateSerializer,
     HotelLocationSerializer, HotelImageSerializer,
     RoomCreateSerializer, RoomListSerializer,
-    RoomImageSerializer, RoomDetailSerializer
+    RoomImageSerializer, RoomDetailSerializer, AmenitySerializer
 )
 from apps.hotel.models import (
-    Hotel, HotelImage,
+    Hotel, HotelImage, Amenity,
     HotelLocation, Room, RoomImage
 )
 from apps.reservations.models import Reservation
-from .filters import RoomFilter
 from apps.notifications.tasks import send_custom_notification
-
+from .filters import RoomFilter
 
 
 @api_view(['GET'])
@@ -35,12 +35,14 @@ def api_overview(request):
     """Provides an overview of available API endpoints for client discovery."""
     return Response({
         "hotels/": "GET (list) | POST (create)",
-        "hotels/<id>/": "GET (detail)",
-        "hotels/<id>/location/": "GET | POST | PATCH",
-        "hotels/<id>/rooms/": "GET (list rooms) | POST (create room)",
-        "hotels/<int:hotel_id>/images/": "GET | POST hotel images",
-        "rooms/<slug>/": "GET (room detail)",
-        "rooms/<id>/images/": "GET | POST room images"
+        "hotels/<int:pk>/": "GET (detail)",
+        "hotels/<int:hotel_id>/location/": "GET | POST (create) | PUT | PATCH | DELETE",
+        "hotels/<int:hotel_id>/images/": "GET (list) | POST (create)",
+        "hotels/<int:hotel_id>/images/<int:image_id>/": "GET | PUT | DELETE",
+        "hotels/<int:hotel_id>/rooms/": "GET (list) | POST (create)",
+        "rooms/<slug>/": "GET (detail)",
+        "rooms/<int:room_id>/images/": "GET (list) | POST (create)",
+        "hotels/<int:hotel_id>/amenities/": "GET (list) | POST (add) | DELETE (remove)",
     })
 
 
@@ -74,9 +76,10 @@ class HotelListCreateView(generics.ListCreateAPIView):
         return (
             queryset
         )
+
     def create(self, request, *args, **kwargs):
         user = request.user
-        # Proceed with creating the profile
+
         response = super().create(request, *args, **kwargs)
 
         # Send notification to the user
@@ -87,13 +90,14 @@ class HotelListCreateView(generics.ListCreateAPIView):
             redirect_url="//"
         )
         return response
+
     def get_serializer_class(self):
         return HotelCreateSerializer if self.request.method == 'POST' else HotelListSerializer
 
 
 class HotelDetailView(generics.RetrieveUpdateAPIView):
     """Retrieves detailed information for a specific verified hotel by ID."""
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsHotelOwnerOrReadOnly]
     queryset = Hotel.verified.annotate(
         room_count=Count('rooms'),
         total_reviews=Count('reviews')
@@ -103,20 +107,47 @@ class HotelDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = HotelDetailSerializer
 
 
+# CRUD operation Hotel Location
+
 class HotelLocationView(generics.ListCreateAPIView):
-    """Allows hotel owners to view or create the location of their hotel."""
     serializer_class = HotelLocationSerializer
-    permission_classes = [IsAuthenticated, IsHotelOwnerOrReadOnly]
+    permission_classes = [IsHotelOwnerOrReadOnly]
 
     def get_queryset(self):
-        return HotelLocation.objects.filter(hotel__owner=self.request.user)
+        hotel_id = self.kwargs['hotel_id']
+        return HotelLocation.objects.filter(hotel_id=hotel_id, hotel__owner=self.request.user)
 
     def perform_create(self, serializer):
-        hotel = get_object_or_404(
-            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         if hasattr(hotel, 'location'):
             raise ValidationError("This hotel already has a location.")
         serializer.save(hotel=hotel)
+
+
+class HotelLocationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = HotelLocationSerializer
+    permission_classes = [IsHotelOwnerOrReadOnly]
+
+    def get_queryset(self):
+        hotel_id = self.kwargs['hotel_id']
+        return HotelLocation.objects.filter(hotel_id=hotel_id)
+
+
+# CRUD operations Hotel Images
+
+
+class HotelImageDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Allows hotel owners to view, update, or delete a specific hotel image."""
+    serializer_class = HotelImageSerializer
+    permission_classes = [IsHotelOwnerOrReadOnly]
+
+    def get_queryset(self):
+        return HotelImage.objects.filter(hotel__owner=self.request.user)
+
+    def get_object(self):
+        hotel_id = self.kwargs['hotel_id']
+        image_id = self.kwargs['pk']
+        return get_object_or_404(HotelImage, id=image_id, hotel_id=hotel_id)
 
 
 class HotelImageListCreateView(generics.ListCreateAPIView):
@@ -131,6 +162,34 @@ class HotelImageListCreateView(generics.ListCreateAPIView):
         hotel = get_object_or_404(
             Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         serializer.save(hotel=hotel)
+
+
+# CRUD operations Hotel Amenities
+class HotelAmenitiesViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing amenities associated with a specific hotel.
+    Allows listing, adding, and removing amenities for a hotel.
+    """
+    serializer_class = AmenitySerializer
+    permission_classes = [IsHotelOwnerOrReadOnly]
+
+    def get_queryset(self):
+        hotel_id = self.kwargs.get('hotel_id')
+        hotel = get_object_or_404(Hotel, id=hotel_id)
+        return hotel.amenities.all()
+
+    def perform_create(self, serializer):
+        hotel_id = self.kwargs.get('hotel_id')
+        hotel = get_object_or_404(Hotel, id=hotel_id, owner=self.request.user)
+        amenity = serializer.save()
+        hotel.amenities.add(amenity)
+
+    def destroy(self, request, *args, **kwargs):
+        hotel_id = self.kwargs.get('hotel_id')
+        hotel = get_object_or_404(Hotel, id=hotel_id, owner=self.request.user)
+        amenity = self.get_object()
+        hotel.amenities.remove(amenity)
+        return Response(status=204)
 
 
 # -> Room Views
