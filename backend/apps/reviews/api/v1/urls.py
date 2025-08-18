@@ -7,5 +7,7 @@ urlpatterns = [
 
     path('hotel/<int:hotel_id>/create/', views.CreateHotelReviewView.as_view(), name='create-hotel-review'),
     path('hotel/<int:hotel_id>/list/', views.HotelReviewListView.as_view(), name='hotel-review-list'), 
+    path('hotel/<int:hotel_id>/summary/', views.hotel_reviews_summary, name='hotel-reviews-summary'),
+
 ]
 

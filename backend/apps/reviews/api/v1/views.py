@@ -1,14 +1,17 @@
-# reviews/views.py
 from rest_framework import generics, permissions
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
+from django.db.models import Avg
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
+
+from azure.ai.inference.models import SystemMessage, UserMessage
 
 from apps.hotel.models import Hotel
 from apps.reviews.models import Review
 from .serializers import ReviewSerializer
-
-
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+from .utils import _call_text_summarizer
 
 
 @api_view(['GET'])
@@ -52,7 +55,6 @@ class HotelReviewListView(generics.ListAPIView):
         hotel_id = self.kwargs.get("hotel_id")
         return Review.objects.filter(hotel__id=hotel_id, parent__isnull=True).order_by("-created_at")
 
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticatedOrReadOnly])
 def hotel_reviews_summary(request, hotel_id):
@@ -66,8 +68,7 @@ def hotel_reviews_summary(request, hotel_id):
         "positive_points": ["..."],
         "negative_points": ["..."],
         "top_mentions": ["..."],
-        "count": 12,
-        "hotel_name": "Hotel Paradise"
+        "count": 12
       }
     """
     cache_key = f"hotel_reviews_summary:{hotel_id}"
@@ -75,8 +76,7 @@ def hotel_reviews_summary(request, hotel_id):
     if cached:
         return Response(cached)
 
-    reviews_qs = Review.objects.filter(
-        hotel_id=hotel_id).order_by("-created_at")[:20]
+    reviews_qs = Review.objects.filter(hotel_id=hotel_id).order_by("-created_at")[:20]
     if not reviews_qs.exists():
         result = {"summary": "No reviews available.", "count": 0}
         cache.set(cache_key, result, 300)
@@ -88,6 +88,7 @@ def hotel_reviews_summary(request, hotel_id):
         t = (s or "").strip()
         return (t[:max_len] + "...") if len(t) > max_len else t
 
+    # Filter out empty or very short comments
     reviews_list = [
         {"rating": r.rating, "comment": clean_text(r.comment)}
         for r in reviews_qs
@@ -102,27 +103,14 @@ def hotel_reviews_summary(request, hotel_id):
     system = SystemMessage(
         "You are an assistant that summarizes hotel reviews in English. "
         "Return output as JSON only with fields: summary (short text), "
-        "avg_rating (numeric), positive_points (list of positive aspects), "
-        "negative_points (list of negative aspects), top_mentions (list of most-mentioned words/items). "
-        "Return only valid JSON."
+        "avg_rating (numeric), pros (list of positive points), cons (list of negative points), "
+        "top_mentions (list of most-mentioned words/items). Return only valid JSON."
     )
 
-    reviews_text = "\n\n".join(
-        [f"Rating: {r['rating']}\nComment: {r['comment']}" for r in reviews_list])
+    reviews_text = "\n\n".join([f"Rating: {r['rating']}\nComment: {r['comment']}" for r in reviews_list])
     user_msg = UserMessage(
-        f"""This is a list of {len(reviews_list)} recent reviews for a hotel:
-
-{reviews_text}
-
-Please provide:
-- A short overall summary of the reviews
-- A list of positive points mentioned by users
-- A list of negative points mentioned by users
-- A list of the most frequently mentioned keywords or items
-
-Return the result as valid JSON with fields:
-summary, positive_points, negative_points, top_mentions.
-"""
+        f"This is a list of {len(reviews_list)} recent reviews for a hotel:\n\n{reviews_text}\n\n"
+        "Provide a concise overall summary, pros, cons, and top mentions. Output must be JSON only."
     )
 
     try:
@@ -130,10 +118,10 @@ summary, positive_points, negative_points, top_mentions.
     except Exception as e:
         return Response({"error": "summarizer_failed", "detail": str(e)}, status=500)
 
+    # Attach count and avg_rating if model returned valid JSON
     if isinstance(resp, dict):
         resp.setdefault("count", len(reviews_list))
-        resp.setdefault("avg_rating", float(avg_rating)
-                        if avg_rating is not None else None)
+        resp.setdefault("avg_rating", float(avg_rating) if avg_rating is not None else None)
     else:
         resp = {
             "text": str(resp),
@@ -141,13 +129,5 @@ summary, positive_points, negative_points, top_mentions.
             "avg_rating": float(avg_rating) if avg_rating is not None else None
         }
 
-    # Add hotel name to response
-    try:
-        hotel_name = Hotel.objects.get(id=hotel_id).name
-        resp["hotel_name"] = hotel_name
-    except Hotel.DoesNotExist:
-        resp["hotel_name"] = None
-
-    # Cache for 5 minutes
     cache.set(cache_key, resp, 1)
     return Response(resp)

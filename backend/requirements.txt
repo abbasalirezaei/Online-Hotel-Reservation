@@ -14,6 +14,7 @@ django-daisy
 django-debug-toolbar
 drf-yasg
 django-querycount
+azure-ai-inference
 django-daisy
 # test
 pytest 
