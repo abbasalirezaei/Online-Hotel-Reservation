@@ -16,7 +16,7 @@ class HotelLocationInline(admin.StackedInline):
 
 @admin.register(Hotel)
 class HotelAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'is_verified'  , 'has_parking', 'created_at')
+    list_display = ('id', 'name', 'owner', 'is_verified'  , 'has_parking', 'created_at')
     list_filter = ('has_parking', 'created_at', 'owner')
     search_fields = ('name', 'owner__username',
                      'location__city', 'location__country')

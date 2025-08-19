@@ -1,4 +1,3 @@
-
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 class IsHotelOwnerOrReadOnly(BasePermission):
@@ -20,4 +19,4 @@ class IsHotelOwnerOrReadOnly(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return True
-        return obj.hotel.owner == request.user
+        return getattr(obj, "owner", None) == request.user

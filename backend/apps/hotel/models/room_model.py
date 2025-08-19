@@ -34,8 +34,9 @@ class Room(models.Model):
     
     rating = models.IntegerField(validators=[
         MinValueValidator(0),
-        MaxValueValidator(5)
-    ])
+        MaxValueValidator(5),
+    
+    ], default=0)
     main_image = models.ImageField(upload_to='room/images/main_image/')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -47,8 +48,19 @@ class Room(models.Model):
     def __str__(self):
         return f"{self.title} - {self.hotel.name}"
     
+    def save(self, *args, **kwargs):
+        # generate a unique slug from the title if not provided
+        if not self.slug:
+            base = slugify(self.title) or "room"
+            slug_candidate = base
+            counter = 1
+            # exclude self to allow updates without false positive conflict
+            while Room.objects.filter(slug=slug_candidate).exclude(pk=self.pk).exists():
+                slug_candidate = f"{base}-{counter}"
+                counter += 1
+            self.slug = slug_candidate
 
-
+        super().save(*args, **kwargs)
 
 class RoomImage(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='images')

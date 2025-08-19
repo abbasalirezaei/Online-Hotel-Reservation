@@ -63,8 +63,8 @@ class HotelLocationSerializer(serializers.ModelSerializer):
 class HotelListSerializer(serializers.ModelSerializer):
     images = HotelImageSerializer(many=True)
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    room_count = serializers.IntegerField()
-    total_reviews = serializers.IntegerField()
+    room_count = serializers.IntegerField(read_only=True)     
+    total_reviews = serializers.IntegerField(read_only=True)   
 
     class Meta:
         model = Hotel
@@ -95,6 +95,7 @@ class HotelCreateSerializer(serializers.ModelSerializer):
             'name', 'phone_number', 'email', 'website', 'main_image',
             'has_parking', 'policy', 'amenities', 'description', 'uploaded_images'
         ]
+        read_only_fields = ['room_count', 'total_reviews']
 
     def create(self, validated_data):
         uploaded_images = validated_data.pop("uploaded_images", [])
@@ -117,8 +118,8 @@ class HotelDetailSerializer(serializers.ModelSerializer):
     location = HotelLocationSerializer(read_only=True)
     images = HotelImageSerializer(many=True, read_only=True)
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    room_count = serializers.IntegerField()
-    total_reviews = serializers.IntegerField()
+    room_count = serializers.IntegerField(read_only=True)      # <- explicit read-only
+    total_reviews = serializers.IntegerField(read_only=True)   # <- explicit read-only
     amenities = AmenitySerializer(many=True, read_only=True)
 
     class Meta:
@@ -217,33 +218,28 @@ class RoomDetailSerializer(serializers.ModelSerializer):
 
 class RoomCreateSerializer(serializers.ModelSerializer):
     hotel = serializers.PrimaryKeyRelatedField(queryset=Hotel.objects.all())
-    slug = serializers.SlugField(required=False, read_only=True)
 
     class Meta:
         model = Room
         fields = [
-            'room_type', 'title', 'slug', 'hotel',
+            'room_type', 'title',  'hotel',
             'guests_count', 'room_details', 'has_balcony', 'has_air_conditioning',
             'has_tv', 'pets', 'price_per_night', 'capacity', 'floor', 'is_available', 'main_image'
         ]
 
-    def validate(self, data):
-        if data.get('guests_count', 1) > data.get('capacity', 1):
-            raise serializers.ValidationError(
-                "guests_count cannot exceed capacity.")
-        return data
-
     def create(self, validated_data):
-        slug = validated_data.get('slug') or slugify(validated_data['title'])
-        validated_data['slug'] = slug
-        room = Room.objects.create(**validated_data)
+        images_data = self.initial_data.get('images', [])
+        with transaction.atomic():
+            # Let the model's save() generate a unique slug
+            room = Room(**validated_data)
+            room.save()
+            for image in images_data:
+                RoomImage.objects.create(room=room, **image)
         return room
 
     def update(self, instance, validated_data):
         images_data = self.initial_data.get('images', [])
-        if not validated_data.get('slug'):
-            validated_data['slug'] = slugify(
-                validated_data.get('title', instance.title))
+        # Apply incoming fields; don't manually set slug — model.save() will ensure uniqueness
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()

@@ -15,7 +15,7 @@ class Hotel(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='hotels',
-        limit_choices_to={'role': 'HOTEL_OWNER'}
+        limit_choices_to={'role': 'hotel_owner'},
     )
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, blank=True)

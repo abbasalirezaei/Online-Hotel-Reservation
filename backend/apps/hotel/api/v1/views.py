@@ -208,7 +208,6 @@ class OnwerHotelListView(generics.ListAPIView):
     serializer_class = HotelListSerializer
 
     def get_queryset(self):
-        # Ensure serializer fields room_count and total_reviews exist on each Hotel instance
         return (
             Hotel.verified
             .filter(owner=self.request.user)
@@ -258,7 +257,10 @@ class OnwerHotelListView(generics.ListAPIView):
         if page is not None:
             return self.get_paginated_response(data)
         return Response(data)
-# -> Room Views
+
+
+
+# Room CRUD operations
 
 class RoomListCreateView(generics.ListCreateAPIView):
     """Lists available rooms for a specific hotel (GET) or allows owners to add new rooms (POST)."""
@@ -268,7 +270,7 @@ class RoomListCreateView(generics.ListCreateAPIView):
     filterset_class = RoomFilter
     search_fields = ['title', 'description']
     ordering_fields = ['price_per_night', 'capacity', 'floor']
-
+    
     def get_queryset(self):
         return (
             Room.available
