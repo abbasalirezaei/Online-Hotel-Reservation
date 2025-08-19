@@ -113,7 +113,7 @@ docker-compose backend pytest
 
 Run a specific test module:
 ```bash
-docker-compose backend pytest apps/bookings/tests/
+docker-compose backend pytest apps/bookings/tests/ -v
 ```
 
 ---

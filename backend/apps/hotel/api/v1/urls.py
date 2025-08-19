@@ -7,6 +7,7 @@ router = DefaultRouter()
 # CRUD operations for hotel amenities
 router.register(r'hotels/(?P<hotel_id>\d+)/amenities', HotelAmenitiesViewSet, basename='hotel-amenities')
 
+app_name = 'api_v1'
 urlpatterns = [
     # Overview of available endpoints
     path('', views.api_overview, name='api-overview'),

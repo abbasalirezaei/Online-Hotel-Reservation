@@ -23,7 +23,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('apps.accounts.urls')),
-    path('hotel/', include('apps.hotel.urls')),
+    path('hotel/', include('apps.hotel.urls', namespace='hotel')),
     path('reservations/', include('apps.reservations.urls', namespace='reservations')),
     path('reviews/', include('apps.reviews.urls')),
     path('notifications/', include('apps.notifications.urls')),

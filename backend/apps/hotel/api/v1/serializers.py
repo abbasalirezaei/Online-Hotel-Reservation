@@ -86,7 +86,9 @@ class HotelCreateSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
-    amenities = AmenitySerializer(many=True, read_only=True)
+    amenities = serializers.PrimaryKeyRelatedField(
+        queryset=Amenity.objects.all(), many=True, required=False
+    )
 
     class Meta:
         model = Hotel
@@ -98,12 +100,13 @@ class HotelCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         uploaded_images = validated_data.pop("uploaded_images", [])
-        amenities = validated_data.pop("amenities")
+        amenities = validated_data.pop("amenities", [])
         user = self.context['request'].user
 
         with transaction.atomic():
             hotel = Hotel.objects.create(
-                owner=user, is_verified=False, **validated_data)
+                owner=user, is_verified=False, **validated_data
+            )
             hotel.amenities.set(amenities)
             for image_data in uploaded_images:
                 HotelImage.objects.create(hotel=hotel, image=image_data)
