@@ -2,7 +2,7 @@
 from django.db import connection, reset_queries
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, F, Sum, Avg
-
+from django.db.models import Prefetch
 from rest_framework import generics
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import ValidationError
@@ -67,12 +67,16 @@ class HotelListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Hotel.verified.annotate(
-            room_count=Count('rooms'),
-            total_reviews=Count('reviews')
+            room_count=Count('rooms', distinct=True),
+            total_reviews=Count('reviews', distinct=True)
         ).only(
             "id", "name", "description", "owner_id",
             "created_at"
-        ).prefetch_related("images").select_related("owner", "location")
+        ).prefetch_related(
+            "images",
+            Prefetch('amenities', queryset=Amenity.objects.only('id', 'name')
+                     )
+        ).select_related("owner", "location")
         return (
             queryset
         )
@@ -99,11 +103,14 @@ class HotelDetailView(generics.RetrieveUpdateAPIView):
     """Retrieves detailed information for a specific verified hotel by ID."""
     permission_classes = [IsHotelOwnerOrReadOnly]
     queryset = Hotel.verified.annotate(
-        room_count=Count('rooms'),
-        total_reviews=Count('reviews')
+        room_count=Count('rooms', distinct=True),
+        total_reviews=Count('reviews', distinct=True)
     ).select_related(
         'owner', 'location'
-    ).prefetch_related('images').all()
+    ).prefetch_related(
+        'images',
+        Prefetch('amenities', queryset=Amenity.objects.only('id', 'name'))
+    ).all()
     serializer_class = HotelDetailSerializer
 
 
@@ -118,7 +125,8 @@ class HotelLocationView(generics.ListCreateAPIView):
         return HotelLocation.objects.filter(hotel_id=hotel_id, hotel__owner=self.request.user)
 
     def perform_create(self, serializer):
-        hotel = get_object_or_404(Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
+        hotel = get_object_or_404(
+            Hotel, id=self.kwargs['hotel_id'], owner=self.request.user)
         if hasattr(hotel, 'location'):
             raise ValidationError("This hotel already has a location.")
         serializer.save(hotel=hotel)
@@ -131,8 +139,6 @@ class HotelLocationDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         hotel_id = self.kwargs['hotel_id']
         return HotelLocation.objects.filter(hotel_id=hotel_id)
-
-
 
 
 # CRUD operations Hotel Images
@@ -194,8 +200,6 @@ class HotelAmenitiesViewSet(viewsets.ModelViewSet):
         return Response(status=204)
 
 
-
-
 class OnwerHotelListView(generics.ListAPIView):
     """
     Lists hotels owned by the authenticated user along with stats:
@@ -237,7 +241,8 @@ class OnwerHotelListView(generics.ListAPIView):
             if idx is None:
                 continue
 
-            data[idx]['reservations_count'] = int(getattr(hotel, 'reservations_count', 0) or 0)
+            data[idx]['reservations_count'] = int(
+                getattr(hotel, 'reservations_count', 0) or 0)
             total_revenue = getattr(hotel, 'total_revenue', 0) or 0
             try:
                 data[idx]['total_revenue'] = float(total_revenue)
@@ -245,19 +250,20 @@ class OnwerHotelListView(generics.ListAPIView):
                 data[idx]['total_revenue'] = total_revenue
 
             avg_rating = getattr(hotel, 'avg_rating', None)
-            data[idx]['avg_rating'] = float(avg_rating) if avg_rating is not None else None
+            data[idx]['avg_rating'] = float(
+                avg_rating) if avg_rating is not None else None
 
             top_rooms = (
                 Room.objects.filter(hotel=hotel)
                 .annotate(reservations_count=Count('reservations'))
                 .order_by('-reservations_count')[:3]
             )
-            data[idx]['popular_rooms'] = RoomListSerializer(top_rooms, many=True, context={'request': request}).data
+            data[idx]['popular_rooms'] = RoomListSerializer(
+                top_rooms, many=True, context={'request': request}).data
 
         if page is not None:
             return self.get_paginated_response(data)
         return Response(data)
-
 
 
 # Room CRUD operations
@@ -270,7 +276,7 @@ class RoomListCreateView(generics.ListCreateAPIView):
     filterset_class = RoomFilter
     search_fields = ['title', 'description']
     ordering_fields = ['price_per_night', 'capacity', 'floor']
-    
+
     def get_queryset(self):
         return (
             Room.available
@@ -288,14 +294,19 @@ class RoomListCreateView(generics.ListCreateAPIView):
         serializer.save(hotel=hotel)
 
 
-class RoomDetailView(generics.RetrieveAPIView):
-    """Retrieves detailed info for a single room by slug."""
-    queryset = Room.available.all()
+class RoomDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update or delete a single room by slug."""
+    
     serializer_class = RoomDetailSerializer
     lookup_field = "slug"
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-
+    permission_classes = [IsHotelOwnerOrReadOnly]
+    def get_queryset(self):
+        return (
+            Room.available
+            .select_related('hotel')
+            .prefetch_related('images')
+            .filter(slug=self.kwargs['slug'])
+        )
 # -> Room Image Views
 
 class RoomImageListCreateView(generics.ListCreateAPIView):

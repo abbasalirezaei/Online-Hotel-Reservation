@@ -68,7 +68,7 @@ class Hotel(models.Model):
 
 class Amenity(models.Model):
     name = models.CharField(max_length=100)
-    icon = models.ImageField(upload_to='amenities/icons/', null=True, blank=True)  # Optional
+    icon = models.ImageField(upload_to='amenities/icons/', null=True, blank=True)  
     description = models.TextField(blank=True)
 
     def __str__(self):

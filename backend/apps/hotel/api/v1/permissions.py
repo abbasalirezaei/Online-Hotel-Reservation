@@ -1,4 +1,6 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
+from apps.hotel.models import Hotel,Room
+
 
 class IsHotelOwnerOrReadOnly(BasePermission):
     """
@@ -19,4 +21,18 @@ class IsHotelOwnerOrReadOnly(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return True
+        
+        # Check if the object is a Hotel
+        if isinstance(obj, Hotel):
+            return obj.owner == request.user
+        
+        # Check if the object is a Room
+        if isinstance(obj, Room):
+            return obj.hotel.owner == request.user
+            
+        # Check if the object is a HotelLocation, HotelImage, or RoomImage
+        if hasattr(obj, 'hotel'):
+            return obj.hotel.owner == request.user
+            
+        # Default fallback, assumes a direct 'owner' field
         return getattr(obj, "owner", None) == request.user

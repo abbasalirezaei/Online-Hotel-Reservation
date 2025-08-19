@@ -13,6 +13,7 @@ class AmenitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Amenity
         fields = ['id', 'name', 'icon', 'description']
+        
 
     def validate_name(self, value):
         if not value.strip():
@@ -69,7 +70,7 @@ class HotelListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hotel
         fields = [
-            'id',  'name', 'owner',
+            'id',  'name', 'owner', 
             'images', 'room_count', 'total_reviews'
         ]
         read_only_fields = ["owner", "room_count", "total_reviews"]
@@ -85,9 +86,7 @@ class HotelCreateSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False
     )
-    amenities = serializers.PrimaryKeyRelatedField(
-        queryset=Amenity.objects.all(), many=True
-    )
+    amenities = AmenitySerializer(many=True, read_only=True)
 
     class Meta:
         model = Hotel
@@ -191,13 +190,21 @@ class RoomListSerializer(serializers.ModelSerializer):
 
 
 class RoomDetailSerializer(serializers.ModelSerializer):
+    hotel_name = serializers.CharField(source='hotel.name', read_only=True)
+    hotel_owner = serializers.CharField(source='hotel.owner.email', read_only=True)
+
+    images = RoomImageSerializer(many=True, read_only=True)
+
     class Meta:
         model = Room
         fields = [
             "hotel",
+            "hotel_name",  # Added field
+            "hotel_owner",  # Added field
             "room_type",
             "title",
             "slug",
+            "images",
             "guests_count",
             "room_details",
             "has_balcony",
@@ -206,7 +213,7 @@ class RoomDetailSerializer(serializers.ModelSerializer):
             "pets",
             "price_per_night",
             "capacity",
-            "floor",
+            "floor",    
             "is_available",
             "main_image",
             "created_at",
