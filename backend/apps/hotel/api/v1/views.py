@@ -271,7 +271,7 @@ class OnwerHotelListView(generics.ListAPIView):
 class RoomListCreateView(generics.ListCreateAPIView):
     """Lists available rooms for a specific hotel (GET) or allows owners to add new rooms (POST)."""
     serializer_class = RoomListSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsHotelOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = RoomFilter
     search_fields = ['title', 'description']
