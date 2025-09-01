@@ -1,4 +1,4 @@
-```markdown
+
 # 🏨 Online Hotel Reservation (Backend)
 
 A modern **backend-only hotel booking system** built with Django REST Framework and fully containerized for easy deployment.  
