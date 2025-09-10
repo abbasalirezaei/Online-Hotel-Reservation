@@ -1,29 +1,32 @@
-# import pytest
-# from apps.accounts.tasks import send_activation_email_task
-# from apps.notifications.tasks import send_custom_notification
-# from apps.notifications.models import Notification
+import pytest
+from unittest.mock import patch
+from django.core import mail
+from apps.accounts.tasks import send_activation_email_task
+from django.utils import timezone
+from apps.accounts.models import User
 
 
-# # 📧 تست ارسال ایمیل فعال‌سازی
-# @pytest.mark.django_db
-# def test_send_activation_email_task_runs(customer_user):
-#     # فقط بررسی می‌کنیم که task بدون خطا اجرا می‌شه
-#     send_activation_email_task.delay(customer_user.id, customer_user.email)
-#     # اگر ایمیل mock شده باشه، می‌تونی بررسی کنی که ارسال شده
+@patch("apps.accounts.tasks.render_to_string", return_value="<p>Mocked HTML</p>")
+@pytest.mark.django_db
+def test_send_activation_email_success(mock_render, customer_user):
+    result = send_activation_email_task(customer_user.id, customer_user.email)
+
+    customer_user.refresh_from_db()
+    assert result is True
+    assert customer_user.active_code is not None
+    assert customer_user.active_code_expires_at > timezone.now()
+    assert len(mail.outbox) == 1
+    assert customer_user.email in mail.outbox[0].to
 
 
-# # 🔔 تست ارسال نوتیفیکیشن
-# @pytest.mark.django_db
-# def test_send_custom_notification_task_creates_notification(customer_user):
-#     send_custom_notification.delay(
-#         customer_user.id,
-#         message="Welcome to the platform!",
-#         priority="info",
-#         redirect_url="/dashboard/"
-#     )
+@pytest.mark.django_db
+def test_send_activation_email_user_not_found():
+    result = send_activation_email_task(9999, "ghost@example.com")
+    assert result is False
 
-#     notif = Notification.objects.filter(user=customer_user).first()
-#     assert notif is not None
-#     assert "welcome" in notif.message.lower()
-#     assert notif.priority == "info"
-#     assert notif.redirect_url == "/dashboard/"
+
+@patch("apps.accounts.tasks.EmailMultiAlternatives.send", side_effect=Exception("SMTP error"))
+@pytest.mark.django_db
+def test_send_activation_email_send_failure(mock_send, customer_user):
+    result = send_activation_email_task(customer_user.id, customer_user.email)
+    assert result is False
