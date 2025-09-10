@@ -9,18 +9,28 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('hotel', '0003_alter_room_rating'),
+        ("hotel", "0003_alter_room_rating"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='hotel',
-            name='amenities',
-            field=models.ManyToManyField(blank=True, help_text='Select amenities available at the hotel.', related_name='amenities', to='hotel.amenity'),
+            model_name="hotel",
+            name="amenities",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="Select amenities available at the hotel.",
+                related_name="amenities",
+                to="hotel.amenity",
+            ),
         ),
         migrations.AlterField(
-            model_name='hotel',
-            name='owner',
-            field=models.ForeignKey(limit_choices_to={'role': 'hotel_owner'}, on_delete=django.db.models.deletion.CASCADE, related_name='hotels', to=settings.AUTH_USER_MODEL),
+            model_name="hotel",
+            name="owner",
+            field=models.ForeignKey(
+                limit_choices_to={"role": "hotel_owner"},
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="hotels",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

@@ -9,62 +9,171 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('discount', '0001_initial'),
-        ('accounts', '0001_initial'),
-        ('hotel', '0001_initial'),
+        ("discount", "0001_initial"),
+        ("accounts", "0001_initial"),
+        ("hotel", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Reservation',
+            name="Reservation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('room_number', models.IntegerField(blank=True, null=True)),
-                ('booking_date', models.DateTimeField(auto_now_add=True)),
-                ('checking_date', models.DateTimeField(blank=True, null=True)),
-                ('checkout_date', models.DateTimeField(blank=True, null=True)),
-                ('cancelled_at', models.DateTimeField(blank=True, null=True, verbose_name='Cancelled At')),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('nights', models.PositiveIntegerField(default=1, verbose_name='Nights')),
-                ('total_price', models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Total Price')),
-                ('prefered_payment_method', models.CharField(choices=[('Prepaid', 'Prepaid'), ('Postpaid', 'Postpaid')], default='Prepaid', max_length=25)),
-                ('booking_status', models.CharField(choices=[('pending', 'Pending'), ('confirmed', 'Confirmed'), ('cancelled', 'Cancelled')], default='pending', max_length=20)),
-                ('coupon', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='discount.coupon', verbose_name='Coupon Code')),
-                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reservations', to='hotel.room')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reservations', to='accounts.customerprofile')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("room_number", models.IntegerField(blank=True, null=True)),
+                ("booking_date", models.DateTimeField(auto_now_add=True)),
+                ("checking_date", models.DateTimeField(blank=True, null=True)),
+                ("checkout_date", models.DateTimeField(blank=True, null=True)),
+                (
+                    "cancelled_at",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="Cancelled At"
+                    ),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "nights",
+                    models.PositiveIntegerField(default=1, verbose_name="Nights"),
+                ),
+                (
+                    "total_price",
+                    models.DecimalField(
+                        decimal_places=2, max_digits=10, verbose_name="Total Price"
+                    ),
+                ),
+                (
+                    "prefered_payment_method",
+                    models.CharField(
+                        choices=[("Prepaid", "Prepaid"), ("Postpaid", "Postpaid")],
+                        default="Prepaid",
+                        max_length=25,
+                    ),
+                ),
+                (
+                    "booking_status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("confirmed", "Confirmed"),
+                            ("cancelled", "Cancelled"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "coupon",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        to="discount.coupon",
+                        verbose_name="Coupon Code",
+                    ),
+                ),
+                (
+                    "room",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reservations",
+                        to="hotel.room",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="reservations",
+                        to="accounts.customerprofile",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Reservation',
-                'verbose_name_plural': 'Reservations',
+                "verbose_name": "Reservation",
+                "verbose_name_plural": "Reservations",
             },
         ),
         migrations.CreateModel(
-            name='CheckOut',
+            name="CheckOut",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('check_out_date', models.DateField(auto_now_add=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='accounts.customerprofile')),
-                ('reservation', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='check_out', to='reservations.reservation')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("check_out_date", models.DateField(auto_now_add=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="accounts.customerprofile",
+                    ),
+                ),
+                (
+                    "reservation",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="check_out",
+                        to="reservations.reservation",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='CheckIn',
+            name="CheckIn",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('phone_number', models.CharField(max_length=14, null=True)),
-                ('email', models.EmailField(max_length=254, null=True)),
-                ('check_in_date', models.DateField(auto_now_add=True)),
-                ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='accounts.customerprofile')),
-                ('reservation', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='check_in', to='reservations.reservation')),
-                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='hotel.room')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("phone_number", models.CharField(max_length=14, null=True)),
+                ("email", models.EmailField(max_length=254, null=True)),
+                ("check_in_date", models.DateField(auto_now_add=True)),
+                (
+                    "customer",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="accounts.customerprofile",
+                    ),
+                ),
+                (
+                    "reservation",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="check_in",
+                        to="reservations.reservation",
+                    ),
+                ),
+                (
+                    "room",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="hotel.room"
+                    ),
+                ),
             ],
         ),
         migrations.AddIndex(
-            model_name='reservation',
-            index=models.Index(fields=['user'], name='reservation_user_id_56b0f8_idx'),
+            model_name="reservation",
+            index=models.Index(fields=["user"], name="reservation_user_id_56b0f8_idx"),
         ),
         migrations.AddIndex(
-            model_name='reservation',
-            index=models.Index(fields=['room'], name='reservation_room_id_9c31f3_idx'),
+            model_name="reservation",
+            index=models.Index(fields=["room"], name="reservation_room_id_9c31f3_idx"),
         ),
     ]

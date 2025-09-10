@@ -6,10 +6,10 @@ from django.utils.text import slugify
 class HotelOwnerProfile(models.Model):
     slug = models.SlugField(unique=True)
     user = models.OneToOneField(
-        'accounts.User',
+        "accounts.User",
         on_delete=models.CASCADE,
-        related_name='hotel_owner_profile',
-        limit_choices_to={'role': 'hotel_owner'}
+        related_name="hotel_owner_profile",
+        limit_choices_to={"role": "hotel_owner"},
     )
     company_name = models.CharField(max_length=100)
     business_license_number = models.CharField(max_length=50, unique=True)
@@ -20,12 +20,13 @@ class HotelOwnerProfile(models.Model):
     phone_number = models.CharField(max_length=20, blank=True)
     support_email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
-    id_document = models.ImageField(upload_to='hotel_owners/documents/ids/', blank=True, null=True)
-    logo = models.ImageField(upload_to='hotel_owners/logos/', blank=True, null=True)
+    id_document = models.ImageField(
+        upload_to="hotel_owners/documents/ids/", blank=True, null=True
+    )
+    logo = models.ImageField(upload_to="hotel_owners/logos/", blank=True, null=True)
 
     def __str__(self):
         return f"Hotel Owner Profile for {self.user.email}"
-    
 
     def save(self, *args, **kwargs):
         if not self.slug:

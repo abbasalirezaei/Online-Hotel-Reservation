@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, post_delete , pre_save
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from .models import Hotel
 from django.core.cache import cache
@@ -11,9 +11,9 @@ def invalidate_hotel_cache(sender, instance, **kwargs):
     Invalidate hotel list caches when a hotel is created, updated, or deleted
     """
     print("Clearing hotel cache")
-    
+
     # Clear hotel list caches
-    cache.delete_pattern('*hotel_list*')
+    cache.delete_pattern("*hotel_list*")
 
 
 @receiver(pre_save, sender=Hotel)
@@ -45,5 +45,5 @@ def notify_owner_on_verification(sender, instance, created, **kwargs):
                 instance.owner.id,
                 message=f"Your hotel '{instance.name}' has been verified!",
                 priority="success",
-                redirect_url=f"/hotels/{instance.id}/"
+                redirect_url=f"/hotels/{instance.id}/",
             )

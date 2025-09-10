@@ -11,27 +11,78 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('reservations', '0001_initial'),
+        ("reservations", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Notification',
+            name="Notification",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('message', models.TextField()),
-                ('notification_type', models.CharField(choices=[('reserved', 'Reserved'), ('rejected', 'Rejected'), ('checkin_reminder', 'Checkin Reminder'), ('checked_in', 'Checked In'), ('checked_out', 'Checked Out'), ('cancelled', 'Cancelled'), ('review_submitted', 'Review Submitted'), ('reply_submitted', 'Reply Submitted'), ('custom', 'Custom')], max_length=20)),
-                ('priority', models.CharField(choices=[('info', 'Info'), ('warning', 'Warning'), ('urgent', 'Urgent')], default='info', max_length=10)),
-                ('redirect_url', models.URLField(blank=True, null=True)),
-                ('is_global', models.BooleanField(default=False)),
-                ('is_read', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('booking', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='reservations.reservation')),
-                ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("message", models.TextField()),
+                (
+                    "notification_type",
+                    models.CharField(
+                        choices=[
+                            ("reserved", "Reserved"),
+                            ("rejected", "Rejected"),
+                            ("checkin_reminder", "Checkin Reminder"),
+                            ("checked_in", "Checked In"),
+                            ("checked_out", "Checked Out"),
+                            ("cancelled", "Cancelled"),
+                            ("review_submitted", "Review Submitted"),
+                            ("reply_submitted", "Reply Submitted"),
+                            ("custom", "Custom"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "priority",
+                    models.CharField(
+                        choices=[
+                            ("info", "Info"),
+                            ("warning", "Warning"),
+                            ("urgent", "Urgent"),
+                        ],
+                        default="info",
+                        max_length=10,
+                    ),
+                ),
+                ("redirect_url", models.URLField(blank=True, null=True)),
+                ("is_global", models.BooleanField(default=False)),
+                ("is_read", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "booking",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="reservations.reservation",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'notifications',
-                'ordering': ['-created_at'],
+                "db_table": "notifications",
+                "ordering": ["-created_at"],
             },
         ),
     ]

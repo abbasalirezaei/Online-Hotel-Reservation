@@ -9,15 +9,19 @@ class AvailableRoomManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_available=True).order_by("-created_at")
 
+
 class Room(models.Model):
-    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name='rooms')
-    room_type = models.CharField(max_length=50, choices=[
-        ('Single', 'Single'),
-        ('Double', 'Double'), 
-        ('Suite', 'Suite'),
-        ('Deluxe', 'Deluxe'),
-    ])
-    
+    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name="rooms")
+    room_type = models.CharField(
+        max_length=50,
+        choices=[
+            ("Single", "Single"),
+            ("Double", "Double"),
+            ("Suite", "Suite"),
+            ("Deluxe", "Deluxe"),
+        ],
+    )
+
     title = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
     guests_count = models.IntegerField(default=1)
@@ -31,13 +35,15 @@ class Room(models.Model):
     capacity = models.PositiveIntegerField()
     floor = models.PositiveIntegerField(default=1)
     is_available = models.BooleanField(default=True)
-    
-    rating = models.IntegerField(validators=[
-        MinValueValidator(0),
-        MaxValueValidator(5),
-    
-    ], default=0)
-    main_image = models.ImageField(upload_to='room/images/main_image/')
+
+    rating = models.IntegerField(
+        validators=[
+            MinValueValidator(0),
+            MaxValueValidator(5),
+        ],
+        default=0,
+    )
+    main_image = models.ImageField(upload_to="room/images/main_image/")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -47,7 +53,7 @@ class Room(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.hotel.name}"
-    
+
     def save(self, *args, **kwargs):
         # generate a unique slug from the title if not provided
         if not self.slug:
@@ -62,9 +68,10 @@ class Room(models.Model):
 
         super().save(*args, **kwargs)
 
+
 class RoomImage(models.Model):
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='room/images/')
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="room/images/")
     caption = models.CharField(max_length=200, blank=True)
 
     def __str__(self):

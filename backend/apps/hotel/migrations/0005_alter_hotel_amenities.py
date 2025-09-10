@@ -6,13 +6,18 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('hotel', '0004_alter_hotel_amenities_alter_hotel_owner'),
+        ("hotel", "0004_alter_hotel_amenities_alter_hotel_owner"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='hotel',
-            name='amenities',
-            field=models.ManyToManyField(blank=True, help_text='Select amenities available at the hotel.', related_name='hotels', to='hotel.amenity'),
+            model_name="hotel",
+            name="amenities",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="Select amenities available at the hotel.",
+                related_name="hotels",
+                to="hotel.amenity",
+            ),
         ),
     ]

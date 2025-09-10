@@ -25,7 +25,7 @@ def test_user_can_list_their_notifications(user_factory):
     client = APIClient()
     client.force_authenticate(user=user)
 
-    url = reverse('notifications:list-notifications')  # Updated namespace
+    url = reverse("notifications:list-notifications")  # Updated namespace
     response = client.get(url)
 
     assert response.status_code == 200
@@ -37,7 +37,7 @@ def test_user_can_list_their_notifications(user_factory):
 def test_unauthenticated_user_cannot_list_notifications():
     """✅ Should return 401 for anonymous users."""
     client = APIClient()
-    url = reverse('notifications:list-notifications')  # Updated namespace
+    url = reverse("notifications:list-notifications")  # Updated namespace
     response = client.get(url)
     assert response.status_code == 401
 
@@ -50,7 +50,9 @@ def test_user_can_mark_notification_as_read(user_factory):
     client = APIClient()
     client.force_authenticate(user=user)
 
-    url = reverse('notifications:mark-read-notification', args=[notif.id])  # Updated namespace
+    url = reverse(
+        "notifications:mark-read-notification", args=[notif.id]
+    )  # Updated namespace
     response = client.post(url)
 
     notif.refresh_from_db()
@@ -67,7 +69,9 @@ def test_user_cannot_mark_other_users_notification(user_factory):
     client = APIClient()
     client.force_authenticate(user=user2)
 
-    url = reverse('notifications:mark-read-notification', args=[notif.id])  # Updated namespace
+    url = reverse(
+        "notifications:mark-read-notification", args=[notif.id]
+    )  # Updated namespace
     response = client.post(url)
 
     assert response.status_code == 404

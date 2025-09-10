@@ -1,5 +1,6 @@
 from posts.models import Post, BlogLike, BlogComment, CommentLike
 from django.contrib.auth import get_user_model
+
 User = get_user_model()
 
 
@@ -9,7 +10,6 @@ def get_blog_by_id(blog_id):
 
 def get_user_by_id(id):
     return User.objects.get(pk=id)
-
 
 
 def create_comment(user, blog_item, blog_body, parent):

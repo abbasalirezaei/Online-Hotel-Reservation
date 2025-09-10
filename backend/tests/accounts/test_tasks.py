@@ -25,7 +25,10 @@ def test_send_activation_email_user_not_found():
     assert result is False
 
 
-@patch("apps.accounts.tasks.EmailMultiAlternatives.send", side_effect=Exception("SMTP error"))
+@patch(
+    "apps.accounts.tasks.EmailMultiAlternatives.send",
+    side_effect=Exception("SMTP error"),
+)
 @pytest.mark.django_db
 def test_send_activation_email_send_failure(mock_send, customer_user):
     result = send_activation_email_task(customer_user.id, customer_user.email)

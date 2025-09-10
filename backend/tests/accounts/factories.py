@@ -9,17 +9,19 @@ from apps.accounts.models import HotelOwnerProfile
 
 User = get_user_model()
 
+
 class UserFactory(factory.django.DjangoModelFactory):
     """
     Creates a user with customizable role.
     Default role is 'customer'.
     """
+
     class Meta:
         model = User
         skip_postgeneration_save = True
 
     email = factory.Faker("email")
-    password = factory.PostGenerationMethodCall('set_password', 'pass1234')
+    password = factory.PostGenerationMethodCall("set_password", "pass1234")
     phone_number = factory.Sequence(lambda n: f"091234567{n % 10}")
     role = "customer"
     is_active = True
@@ -27,16 +29,17 @@ class UserFactory(factory.django.DjangoModelFactory):
     is_superuser = False
 
 
-
 # -------------------------------
 #  Hotel Owner Factory
 # -------------------------------
+
 
 class HotelOwnerProfileFactory(factory.django.DjangoModelFactory):
     """
     Creates a hotel owner .
     Default is unverified. Use is_verified=True for verified profiles.
     """
+
     class Meta:
         model = HotelOwnerProfile
 

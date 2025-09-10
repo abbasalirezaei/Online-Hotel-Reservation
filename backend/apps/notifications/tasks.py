@@ -7,7 +7,7 @@ User = get_user_model()
 
 
 @shared_task
-def send_custom_notification(user_id, message, priority='info', redirect_url=None):
+def send_custom_notification(user_id, message, priority="info", redirect_url=None):
     """
     Send a custom notification to a specific user.
     - Runs asynchronously via Celery.
@@ -20,15 +20,15 @@ def send_custom_notification(user_id, message, priority='info', redirect_url=Non
     Notification.objects.create(
         user=user,
         message=message,
-        notification_type='custom',
+        notification_type="custom",
         priority=priority,
-        redirect_url=redirect_url
+        redirect_url=redirect_url,
     )
     return f"Notification sent to user {user.email}."
 
 
 @shared_task
-def send_global_notification(message, priority='info', redirect_url=None):
+def send_global_notification(message, priority="info", redirect_url=None):
     """
     Send a global notification visible to all users.
     - Creates a single Notification instance with is_global=True.
@@ -36,10 +36,10 @@ def send_global_notification(message, priority='info', redirect_url=None):
     Notification.objects.create(
         user=None,
         message=message,
-        notification_type='custom',
+        notification_type="custom",
         priority=priority,
         redirect_url=redirect_url,
-        is_global=True
+        is_global=True,
     )
     return "Global notification created for all users."
 
@@ -55,9 +55,7 @@ def notify_new_booking(reservation_id):
     guest_email = reservation.user.user.email  # CustomerProfile → user
     msg = f"You have a new booking for {hotel.name} by {guest_email}."
     Notification.objects.create(
-        user=hotel_owner,
-        message=msg,
-        notification_type='reserved'
+        user=hotel_owner, message=msg, notification_type="reserved"
     )
 
 
@@ -71,9 +69,7 @@ def notify_booking_cancelled(reservation_id):
     hotel_owner = hotel.owner
     msg = f"Booking #{reservation.id} for {hotel.name} has been cancelled."
     Notification.objects.create(
-        user=hotel_owner,
-        message=msg,
-        notification_type='cancelled'
+        user=hotel_owner, message=msg, notification_type="cancelled"
     )
 
 
@@ -87,9 +83,7 @@ def remind_checkin(reservation_id):
     hotel_name = reservation.room.hotel.name
     msg = f"Reminder: Your check-in for {hotel_name} is tomorrow."
     Notification.objects.create(
-        user=guest_user,
-        message=msg,
-        notification_type='checkin_reminder'
+        user=guest_user, message=msg, notification_type="checkin_reminder"
     )
 
 
@@ -104,9 +98,7 @@ def notify_checked_in(reservation_id):
     guest_email = reservation.user.user.email
     msg = f"Guest {guest_email} has checked in."
     Notification.objects.create(
-        user=hotel_owner,
-        message=msg,
-        notification_type='checked_in'
+        user=hotel_owner, message=msg, notification_type="checked_in"
     )
 
 
@@ -121,9 +113,7 @@ def notify_checked_out(reservation_id):
     guest_email = reservation.user.user.email
     msg = f"Guest {guest_email} has checked out."
     Notification.objects.create(
-        user=hotel_owner,
-        message=msg,
-        notification_type='checked_out'
+        user=hotel_owner, message=msg, notification_type="checked_out"
     )
 
 
@@ -133,11 +123,14 @@ def daily_checkin_reminders():
 
     Periodic task: remind guests who have check-in tomorrow.
     Should be scheduled via Celery Beat.
-    
+
     """
     from datetime import date, timedelta
+
     tomorrow = date.today() + timedelta(days=1)
-    reservations = Reservation.objects.filter(checking_date=tomorrow, booking_status='pending')
+    reservations = Reservation.objects.filter(
+        checking_date=tomorrow, booking_status="pending"
+    )
     for reservation in reservations:
         remind_checkin.delay(reservation.id)
     return f"Sent reminders for {reservations.count()} reservations"

@@ -2,10 +2,8 @@ from django.db import models
 from django.utils import timezone
 
 
-
-
 class Coupon(models.Model):
-    code = models.CharField(max_length=20, unique=True,verbose_name="Discount Code")
+    code = models.CharField(max_length=20, unique=True, verbose_name="Discount Code")
     discount_percent = models.PositiveIntegerField(verbose_name="Discount Percentage")
     start_date = models.DateTimeField(verbose_name="Valid From")
     end_date = models.DateTimeField(verbose_name="Valid To")

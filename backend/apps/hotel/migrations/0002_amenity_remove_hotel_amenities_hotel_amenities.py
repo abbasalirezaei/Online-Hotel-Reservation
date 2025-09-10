@@ -6,26 +6,44 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('hotel', '0001_initial'),
+        ("hotel", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Amenity',
+            name="Amenity",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('icon', models.ImageField(blank=True, null=True, upload_to='amenities/icons/')),
-                ('description', models.TextField(blank=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                (
+                    "icon",
+                    models.ImageField(
+                        blank=True, null=True, upload_to="amenities/icons/"
+                    ),
+                ),
+                ("description", models.TextField(blank=True)),
             ],
         ),
         migrations.RemoveField(
-            model_name='hotel',
-            name='amenities',
+            model_name="hotel",
+            name="amenities",
         ),
         migrations.AddField(
-            model_name='hotel',
-            name='amenities',
-            field=models.ManyToManyField(blank=True, help_text='Select amenities available at the hotel.', related_name='hotels', to='hotel.amenity'),
+            model_name="hotel",
+            name="amenities",
+            field=models.ManyToManyField(
+                blank=True,
+                help_text="Select amenities available at the hotel.",
+                related_name="hotels",
+                to="hotel.amenity",
+            ),
         ),
     ]

@@ -1,0 +1,14 @@
+# Testing
+pytest
+pytest-django
+pytest-cov
+factory_boy
+
+# Debugging
+django-debug-toolbar
+django-silk
+
+# Code Quality
+black
+flake8
+isort

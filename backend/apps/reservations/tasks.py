@@ -25,7 +25,6 @@ def send_reservation_cancellation_email(self, reservation_id):
         with exponential backoff.
     """
 
-    
     try:
         reservation = Reservation.objects.get(id=reservation_id)
         user = reservation.user
@@ -42,11 +41,11 @@ def send_reservation_cancellation_email(self, reservation_id):
             ),
             from_email="no-reply@hotel.com",
             recipient_list=[user.user.email],
-            fail_silently=False
+            fail_silently=False,
         )
 
     except Exception as exc:
-        raise self.retry(exc=exc, countdown=2 ** self.request.retries)
+        raise self.retry(exc=exc, countdown=2**self.request.retries)
 
 
 @shared_task
@@ -56,7 +55,6 @@ def cancel_unpaid_reservation(reservation_id):
         if reservation.booking_status == BookingStatus.PENDING:
             reservation.booking_status = BookingStatus.CANCELLED
             reservation.save()
-            print(
-                f"Reservation {reservation_id} cancelled due to non-payment.")
+            print(f"Reservation {reservation_id} cancelled due to non-payment.")
     except Reservation.DoesNotExist:
         pass

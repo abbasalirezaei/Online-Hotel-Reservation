@@ -4,6 +4,7 @@ from apps.notifications.models import Notification
 from apps.notifications.tasks import send_custom_notification
 from ..accounts.factories import HotelOwnerProfileFactory
 
+
 @pytest.mark.django_db
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
 def test_hotel_owner_approval_triggers_notification():
@@ -19,7 +20,7 @@ def test_hotel_owner_approval_triggers_notification():
         user_id=user.id,
         message="Your hotel owner request has been approved. You can now create your hotel.",
         priority="info",
-        redirect_url="/hotel-owner-profile/"
+        redirect_url="/hotel-owner-profile/",
     )
 
     # Assert

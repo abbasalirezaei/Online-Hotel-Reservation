@@ -16,7 +16,7 @@ from apps.accounts.tasks import send_activation_email_task
 from apps.accounts.exceptions import (
     ActivationCodeError,
     PasswordMismatchError,
-    AlreadyHotelOwnerError
+    AlreadyHotelOwnerError,
 )
 
 User = get_user_model()
@@ -54,19 +54,19 @@ def send_password_reset_email(user):
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     reset_url = f"http://localhost:3000/password/reset/confirm/?uid={uid}&token={token}"
-    subject = 'Reset your password'
-    message = render_to_string('registration/password_reset_email.html', {
-        'user': user,
-        'reset_url': reset_url
-    })
-    send_mail(subject, message, 'ali@gmail.com', [user.email])
+    subject = "Reset your password"
+    message = render_to_string(
+        "registration/password_reset_email.html", {"user": user, "reset_url": reset_url}
+    )
+    send_mail(subject, message, "ali@gmail.com", [user.email])
     return uid, token
 
 
-def change_user_password(user, request, current_password, new_password, confirm_password):
+def change_user_password(
+    user, request, current_password, new_password, confirm_password
+):
     if new_password != confirm_password:
-        raise PasswordMismatchError(
-            "New password and confirmation do not match.")
+        raise PasswordMismatchError("New password and confirmation do not match.")
 
     if not user.check_password(current_password):
         raise PasswordMismatchError("Current password is incorrect.")
@@ -79,21 +79,23 @@ def change_user_password(user, request, current_password, new_password, confirm_
 def request_hotel_owner(user, validated_data):
     if HotelOwnerProfile.objects.filter(user=user).exists():
         raise AlreadyHotelOwnerError(
-            "You have already submitted a hotel owner request.")
+            "You have already submitted a hotel owner request."
+        )
 
     # create hotel owner profile and update user role
     user.role = "hotel_owner"
     user.save(update_fields=["role"])
 
     profile = HotelOwnerProfile.objects.create(
-        user=user, is_verified=False, **validated_data)
+        user=user, is_verified=False, **validated_data
+    )
 
     # Send notification to the user
     send_custom_notification.delay(
         user.id,
         message="Your request to become a hotel owner has been submitted. You will be notified once it's reviewed by an admin.",
         priority="info",
-        redirect_url="/hotel-owner-profile/"
+        redirect_url="/hotel-owner-profile/",
     )
 
     return profile

@@ -8,25 +8,30 @@ from rest_framework import status
 
 from apps.notifications.tasks import send_custom_notification, send_global_notification
 from apps.notifications.models import Notification
-from .serializers import (NotificationSerializer,
-                          CustomNotificationSerializer,
-                          GlobalNotificationSerializer,)
+from .serializers import (
+    NotificationSerializer,
+    CustomNotificationSerializer,
+    GlobalNotificationSerializer,
+)
 from .permissions import IsHotelOwner
+
 User = get_user_model()
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def api_overview(request):
     """
     Quick overview for devs: lists key notification-related endpoints.
     """
-    return Response({
-        "API Overview": "overview/",
-        "List Notifications (GET)": "notifications/",
-        "Mark Notification as Read (POST)": "notifications/<int:pk>/read/",
-        "Send Custom Notification (POST)": "notifications/custom/",
-        "Send Global Notification (POST)": "notifications/global/"
-    })
+    return Response(
+        {
+            "API Overview": "overview/",
+            "List Notifications (GET)": "notifications/",
+            "Mark Notification as Read (POST)": "notifications/<int:pk>/read/",
+            "Send Custom Notification (POST)": "notifications/custom/",
+            "Send Global Notification (POST)": "notifications/global/",
+        }
+    )
 
 
 class UserNotificationsListView(APIView):
@@ -34,6 +39,7 @@ class UserNotificationsListView(APIView):
     List all notifications for the authenticated user.
     Includes global notifications.
     """
+
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -47,7 +53,7 @@ class UserNotificationsListView(APIView):
         user = request.user
         qs = Notification.objects.filter(
             models.Q(user=user) | models.Q(is_global=True)
-        ).order_by('-created_at')
+        ).order_by("-created_at")
         serializer = NotificationSerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -56,6 +62,7 @@ class MarkNotificationReadView(APIView):
     """
     Mark a specific notification as read.
     """
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -76,8 +83,7 @@ class MarkNotificationReadView(APIView):
             return Response({"detail": "Notification marked as read"})
         except Notification.DoesNotExist:
             return Response(
-                {"error": "Notification not found."},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Notification not found."}, status=status.HTTP_404_NOT_FOUND
             )
 
 
@@ -94,9 +100,11 @@ class SendCustomNotificationAPIView(APIView):
             data["user_id"],
             data["message"],
             data.get("priority", "info"),
-            data.get("redirect_url", "")
+            data.get("redirect_url", ""),
         )
-        return Response({'message': 'Custom notification sent'}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Custom notification sent"}, status=status.HTTP_200_OK
+        )
 
 
 class SendGlobalNotificationAPIView(APIView):
@@ -109,8 +117,8 @@ class SendGlobalNotificationAPIView(APIView):
 
         data = serializer.validated_data
         send_global_notification.delay(
-            data["message"],
-            data.get("priority", "info"),
-            data.get("redirect_url", "")
+            data["message"], data.get("priority", "info"), data.get("redirect_url", "")
         )
-        return Response({'message': 'Global notification sent'}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Global notification sent"}, status=status.HTTP_200_OK
+        )

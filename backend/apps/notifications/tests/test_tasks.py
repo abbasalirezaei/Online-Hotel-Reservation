@@ -9,7 +9,7 @@ from apps.notifications.tasks import (
     notify_checked_in,
     notify_checked_out,
     send_custom_notification,
-    send_global_notification
+    send_global_notification,
 )
 
 pytestmark = pytest.mark.django_db

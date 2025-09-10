@@ -8,8 +8,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ['id', 'user_name', 'rating',
-                  'comment', 'created_at', 'replies']
+        fields = ["id", "user_name", "rating", "comment", "created_at", "replies"]
 
     def get_replies(self, obj):
         children = obj.children.all().order_by("created_at")

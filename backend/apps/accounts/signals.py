@@ -6,12 +6,14 @@ from django.dispatch import receiver
 from .models import User, CustomerProfile
 from apps.accounts.models import HotelOwnerProfile
 from apps.accounts.tasks import send_activation_email_task
-from apps.notifications.tasks import send_custom_notification    
+from apps.notifications.tasks import send_custom_notification
+
 
 @receiver(post_save, sender=User)
 def create_user_customer(sender, instance, created, **kwargs):
     if created:
         CustomerProfile.objects.create(user=instance)
+
 
 @receiver(post_save, sender=User)
 def send_activation_email_signal(sender, instance, created, **kwargs):
@@ -26,5 +28,5 @@ def notify_owner_verification(sender, instance, created, **kwargs):
             user_id=instance.user.id,
             message="Your hotel owner request has been approved 🎉 You can now create your hotel.",
             priority="info",
-            redirect_url="/hotel-owner-profile/"
+            redirect_url="/hotel-owner-profile/",
         )

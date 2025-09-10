@@ -1,4 +1,8 @@
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    PermissionsMixin,
+    BaseUserManager,
+)
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import RegexValidator
 from django.db import models
@@ -26,19 +30,20 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
 
     ROLE_CHOICES = (
-        ('admin', 'Admin'),
-        ('hotel_owner', 'Hotel Owner'),
-        ('customer', 'Customer'),
+        ("admin", "Admin"),
+        ("hotel_owner", "Hotel Owner"),
+        ("customer", "Customer"),
     )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')  
-    email = models.EmailField(_('email address'), unique=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="customer")
+    email = models.EmailField(_("email address"), unique=True)
     phone_number = models.CharField(
         max_length=11,
         unique=True,
-        validators=[RegexValidator(
-            regex=r'^\d{10,11}$',
-            message="Phone number must be 10 or 11 digits."
-        )]
+        validators=[
+            RegexValidator(
+                regex=r"^\d{10,11}$", message="Phone number must be 10 or 11 digits."
+            )
+        ],
     )
     active_code = models.CharField(max_length=100, null=True, blank=True)
     active_code_expires_at = models.DateTimeField(null=True, blank=True)
@@ -46,8 +51,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['phone_number']
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["phone_number"]
 
     objects = UserManager()
 

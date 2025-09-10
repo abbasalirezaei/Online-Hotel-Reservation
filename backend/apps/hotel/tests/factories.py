@@ -4,6 +4,7 @@ from apps.accounts.tests.factories import UserFactory
 from django.utils.text import slugify
 from factory.django import DjangoModelFactory
 
+
 class AmenityFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Amenity
@@ -16,7 +17,7 @@ class HotelFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Hotel
 
-    owner = factory.SubFactory(UserFactory, role='hotel_owner')
+    owner = factory.SubFactory(UserFactory, role="hotel_owner")
     name = factory.Sequence(lambda n: f"Hotel {n}")
     slug = factory.LazyAttribute(lambda obj: slugify(obj.name))
     description = "A nice hotel for testing."
@@ -51,7 +52,7 @@ class HotelImageFactory(factory.django.DjangoModelFactory):
         model = HotelImage
 
     hotel = factory.SubFactory(HotelFactory)
-    image = factory.django.ImageField(color='blue')
+    image = factory.django.ImageField(color="blue")
     caption = factory.Sequence(lambda n: f"Image {n}")
 
 
@@ -74,7 +75,7 @@ class RoomFactory(factory.django.DjangoModelFactory):
     floor = 2
     is_available = True
     rating = 4
-    main_image = factory.django.ImageField(color='blue')
+    main_image = factory.django.ImageField(color="blue")
 
 
 class RoomImageFactory(factory.django.DjangoModelFactory):
@@ -82,9 +83,8 @@ class RoomImageFactory(factory.django.DjangoModelFactory):
         model = RoomImage
 
     room = factory.SubFactory(RoomFactory)
-    image = factory.django.ImageField(color='red')
+    image = factory.django.ImageField(color="red")
     caption = factory.Sequence(lambda n: f"Room Image {n}")
-
 
 
 """

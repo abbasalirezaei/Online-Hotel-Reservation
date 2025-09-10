@@ -9,22 +9,67 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('reservations', '0001_initial'),
+        ("reservations", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Payment',
+            name="Payment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('payment_method', models.CharField(choices=[('online', 'Online Gateway'), ('cash', 'Cash Payment'), ('card', 'Card Payment'), ('wallet', 'Wallet Balance'), ('crypto', 'Cryptocurrency'), ('bank_transfer', 'Bank Transfer')], default='online', max_length=20)),
-                ('paid_at', models.DateTimeField(blank=True, null=True)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('paid', 'Paid'), ('failed', 'Failed'), ('refunded', 'Refunded'), ('cancelled', 'Cancelled')], default='pending', max_length=20)),
-                ('transaction_id', models.CharField(blank=True, max_length=100, unique=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('extra_data', models.JSONField(blank=True, null=True)),
-                ('reservation', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='payment', to='reservations.reservation')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("amount", models.DecimalField(decimal_places=2, max_digits=10)),
+                (
+                    "payment_method",
+                    models.CharField(
+                        choices=[
+                            ("online", "Online Gateway"),
+                            ("cash", "Cash Payment"),
+                            ("card", "Card Payment"),
+                            ("wallet", "Wallet Balance"),
+                            ("crypto", "Cryptocurrency"),
+                            ("bank_transfer", "Bank Transfer"),
+                        ],
+                        default="online",
+                        max_length=20,
+                    ),
+                ),
+                ("paid_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("paid", "Paid"),
+                            ("failed", "Failed"),
+                            ("refunded", "Refunded"),
+                            ("cancelled", "Cancelled"),
+                        ],
+                        default="pending",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "transaction_id",
+                    models.CharField(blank=True, max_length=100, unique=True),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("extra_data", models.JSONField(blank=True, null=True)),
+                (
+                    "reservation",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="payment",
+                        to="reservations.reservation",
+                    ),
+                ),
             ],
         ),
     ]

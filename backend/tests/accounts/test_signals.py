@@ -4,6 +4,7 @@ from apps.accounts.models import HotelOwnerProfile
 from apps.accounts.models import CustomerProfile
 from .factories import UserFactory
 
+
 @pytest.mark.django_db
 def test_customer_profile_created(customer_user):
     profile = CustomerProfile.objects.filter(user=customer_user).first()
@@ -27,5 +28,5 @@ def test_notify_owner_verification_signal_triggered(mock_notify, verified_profil
         user_id=verified_profile.user.id,
         message="Your hotel owner request has been approved 🎉 You can now create your hotel.",
         priority="info",
-        redirect_url="/hotel-owner-profile/"
+        redirect_url="/hotel-owner-profile/",
     )

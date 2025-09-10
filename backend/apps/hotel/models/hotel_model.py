@@ -14,8 +14,8 @@ class Hotel(models.Model):
     owner = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='hotels',
-        limit_choices_to={'role': 'hotel_owner'},
+        related_name="hotels",
+        limit_choices_to={"role": "hotel_owner"},
     )
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, blank=True)
@@ -24,21 +24,25 @@ class Hotel(models.Model):
     phone_number = models.CharField(
         max_length=20,
         blank=True,
-        validators=[RegexValidator(r'^\+?1?\d{9,15}$', message=_("Enter a valid phone number."))]
+        validators=[
+            RegexValidator(r"^\+?1?\d{9,15}$", message=_("Enter a valid phone number."))
+        ],
     )
     email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
 
     is_verified = models.BooleanField(default=False)
-    main_image = models.ImageField(upload_to="hotels/main_images/", blank=True, null=True)
+    main_image = models.ImageField(
+        upload_to="hotels/main_images/", blank=True, null=True
+    )
     has_parking = models.BooleanField(default=False)
 
     policy = models.TextField()
     amenities = models.ManyToManyField(
-        'Amenity',
-        related_name='hotels',
+        "Amenity",
+        related_name="hotels",
         blank=True,
-        help_text=_("Select amenities available at the hotel.")
+        help_text=_("Select amenities available at the hotel."),
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -48,11 +52,11 @@ class Hotel(models.Model):
     verified = VerifiedHotelManager()
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=['is_verified']),
-            models.Index(fields=['owner']),
-            models.Index(fields=['slug']),
+            models.Index(fields=["is_verified"]),
+            models.Index(fields=["owner"]),
+            models.Index(fields=["slug"]),
         ]
         verbose_name = _("Hotel")
         verbose_name_plural = _("Hotels")
@@ -68,15 +72,17 @@ class Hotel(models.Model):
 
 class Amenity(models.Model):
     name = models.CharField(max_length=100)
-    icon = models.ImageField(upload_to='amenities/icons/', null=True, blank=True)  
+    icon = models.ImageField(upload_to="amenities/icons/", null=True, blank=True)
     description = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
-    
+
 
 class HotelLocation(models.Model):
-    hotel = models.OneToOneField(Hotel, on_delete=models.CASCADE, related_name='location')
+    hotel = models.OneToOneField(
+        Hotel, on_delete=models.CASCADE, related_name="location"
+    )
     country = models.CharField(max_length=100)
     city = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=20, blank=True)
@@ -86,8 +92,8 @@ class HotelLocation(models.Model):
         verbose_name = _("Hotel Location")
         verbose_name_plural = _("Hotel Locations")
         indexes = [
-            models.Index(fields=['city']),
-            models.Index(fields=['hotel']),
+            models.Index(fields=["city"]),
+            models.Index(fields=["hotel"]),
         ]
 
     def __str__(self):
@@ -95,15 +101,15 @@ class HotelLocation(models.Model):
 
 
 class HotelImage(models.Model):
-    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to='hotels/images/')
+    hotel = models.ForeignKey(Hotel, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="hotels/images/")
     caption = models.CharField(max_length=200, blank=True)
 
     class Meta:
         verbose_name = _("Hotel Image")
         verbose_name_plural = _("Hotel Images")
         indexes = [
-            models.Index(fields=['hotel']),
+            models.Index(fields=["hotel"]),
         ]
 
     def __str__(self):

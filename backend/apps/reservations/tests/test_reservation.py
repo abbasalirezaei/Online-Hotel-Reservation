@@ -11,12 +11,13 @@ from apps.hotel.tests.factories import HotelFactory, RoomFactory
 from apps.accounts.tests.factories import UserFactory
 from apps.reservations.tasks import cancel_unpaid_reservation
 
+
 @pytest.mark.django_db
 def test_create_reservation_success():
     client = APIClient()
 
-    owner_user = UserFactory(role='hotel_owner')
-    customer_user = UserFactory(role='customer')
+    owner_user = UserFactory(role="hotel_owner")
+    customer_user = UserFactory(role="customer")
 
     HotelOwnerProfile.objects.create(user=owner_user)
     CustomerProfile.objects.get_or_create(user=customer_user)
@@ -29,7 +30,7 @@ def test_create_reservation_success():
 
     client.force_authenticate(user=customer_user)
 
-    url = reverse('reservations:v1:room-reserve', kwargs={'room_id': room.id})
+    url = reverse("reservations:v1:room-reserve", kwargs={"room_id": room.id})
     data = {
         "checking_date": checking_date,
         "checkout_date": checkout_date,
@@ -38,17 +39,18 @@ def test_create_reservation_success():
         "coupon_code": "",
     }
 
-    response = client.post(url, data, format='json')
+    response = client.post(url, data, format="json")
 
     assert response.status_code == 201
     assert response.data["room"] == room.id
+
 
 @pytest.mark.django_db
 def test_create_reservation_fails_with_date_conflict():
     client = APIClient()
 
-    owner_user = UserFactory(role='hotel_owner')
-    customer_user = UserFactory(role='customer')
+    owner_user = UserFactory(role="hotel_owner")
+    customer_user = UserFactory(role="customer")
 
     HotelOwnerProfile.objects.create(user=owner_user)
     customer_profile, _ = CustomerProfile.objects.get_or_create(user=customer_user)
@@ -64,12 +66,12 @@ def test_create_reservation_fails_with_date_conflict():
         total_price=600,
         prefered_payment_method="Prepaid",
         nights=4,
-        booking_status="PENDING"
+        booking_status="PENDING",
     )
 
     client.force_authenticate(user=customer_user)
 
-    url = reverse('reservations:v1:room-reserve', kwargs={'room_id': room.id})
+    url = reverse("reservations:v1:room-reserve", kwargs={"room_id": room.id})
     data = {
         "checking_date": "2025-11-02",
         "checkout_date": "2025-11-04",
@@ -78,18 +80,19 @@ def test_create_reservation_fails_with_date_conflict():
         "coupon_code": "",
     }
 
-    response = client.post(url, data, format='json')
+    response = client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "not available" in str(response.data)
 
+
 @pytest.mark.django_db
-@patch('core.redis_client.redis_client.lock')
+@patch("core.redis_client.redis_client.lock")
 def test_create_reservation_fails_if_lock_cannot_be_acquired(mock_redis_lock):
     client = APIClient()
 
-    owner_user = UserFactory(role='hotel_owner')
-    customer_user = UserFactory(role='customer')
+    owner_user = UserFactory(role="hotel_owner")
+    customer_user = UserFactory(role="customer")
 
     HotelOwnerProfile.objects.create(user=owner_user)
     CustomerProfile.objects.get_or_create(user=customer_user)
@@ -103,7 +106,7 @@ def test_create_reservation_fails_if_lock_cannot_be_acquired(mock_redis_lock):
 
     client.force_authenticate(user=customer_user)
 
-    url = reverse('reservations:v1:room-reserve', kwargs={'room_id': room.id})
+    url = reverse("reservations:v1:room-reserve", kwargs={"room_id": room.id})
     data = {
         "checking_date": "2025-12-10",
         "checkout_date": "2025-12-12",
@@ -112,19 +115,22 @@ def test_create_reservation_fails_if_lock_cannot_be_acquired(mock_redis_lock):
         "coupon_code": "",
     }
 
-    response = client.post(url, data, format='json')
+    response = client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "currently being booked" in str(response.data)
 
+
 @pytest.mark.django_db
-@patch('core.redis_client.redis_client.lock')
-@patch('apps.reservations.models.ReservationManager.is_room_available')
-def test_create_reservation_fails_if_room_booked_during_lock(mock_is_available, mock_redis_lock):
+@patch("core.redis_client.redis_client.lock")
+@patch("apps.reservations.models.ReservationManager.is_room_available")
+def test_create_reservation_fails_if_room_booked_during_lock(
+    mock_is_available, mock_redis_lock
+):
     client = APIClient()
 
-    owner_user = UserFactory(role='hotel_owner')
-    customer_user = UserFactory(role='customer')
+    owner_user = UserFactory(role="hotel_owner")
+    customer_user = UserFactory(role="customer")
     HotelOwnerProfile.objects.create(user=owner_user)
     CustomerProfile.objects.get_or_create(user=customer_user)
 
@@ -140,7 +146,7 @@ def test_create_reservation_fails_if_room_booked_during_lock(mock_is_available, 
 
     client.force_authenticate(user=customer_user)
 
-    url = reverse('reservations:v1:room-reserve', kwargs={'room_id': room.id})
+    url = reverse("reservations:v1:room-reserve", kwargs={"room_id": room.id})
     data = {
         "checking_date": "2025-12-20",
         "checkout_date": "2025-12-22",
@@ -148,15 +154,16 @@ def test_create_reservation_fails_if_room_booked_during_lock(mock_is_available, 
         "prefered_payment_method": "Postpaid",
     }
 
-    response = client.post(url, data, format='json')
+    response = client.post(url, data, format="json")
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "has just been booked" in str(response.data)
     assert mock_is_available.call_count == 2
 
+
 @pytest.mark.django_db
 def test_cancel_unpaid_reservation_task_cancels_pending_reservation():
-    user = UserFactory(role='customer')
+    user = UserFactory(role="customer")
     customer_profile, _ = CustomerProfile.objects.get_or_create(user=user)
     hotel = HotelFactory()
     room = RoomFactory(hotel=hotel)
@@ -168,15 +175,16 @@ def test_cancel_unpaid_reservation_task_cancels_pending_reservation():
         total_price=100,
         prefered_payment_method="Prepaid",
         nights=1,
-        booking_status=BookingStatus.PENDING
+        booking_status=BookingStatus.PENDING,
     )
     cancel_unpaid_reservation(reservation.id)
     reservation.refresh_from_db()
     assert reservation.booking_status == BookingStatus.CANCELLED
 
+
 @pytest.mark.django_db
 def test_cancel_unpaid_reservation_task_does_not_cancel_confirmed():
-    user = UserFactory(role='customer')
+    user = UserFactory(role="customer")
     customer_profile, _ = CustomerProfile.objects.get_or_create(user=user)
     hotel = HotelFactory()
     room = RoomFactory(hotel=hotel)
@@ -188,7 +196,7 @@ def test_cancel_unpaid_reservation_task_does_not_cancel_confirmed():
         total_price=100,
         prefered_payment_method="Prepaid",
         nights=1,
-        booking_status=BookingStatus.CONFIRMED
+        booking_status=BookingStatus.CONFIRMED,
     )
     cancel_unpaid_reservation(reservation.id)
     reservation.refresh_from_db()

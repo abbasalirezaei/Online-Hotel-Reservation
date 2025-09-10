@@ -11,66 +11,206 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('password', models.CharField(max_length=128, verbose_name='password')),
-                ('last_login', models.DateTimeField(blank=True, null=True, verbose_name='last login')),
-                ('is_superuser', models.BooleanField(default=False, help_text='Designates that this user has all permissions without explicitly assigning them.', verbose_name='superuser status')),
-                ('role', models.CharField(choices=[('CUSTOMER', 'Customer'), ('HOTEL_OWNER', 'Hotel Owner'), ('Both', 'Both')], default='CUSTOMER', max_length=20)),
-                ('email', models.EmailField(max_length=254, unique=True, verbose_name='email address')),
-                ('phone_number', models.CharField(max_length=11, unique=True, validators=[django.core.validators.RegexValidator(message='Phone number must be 10 or 11 digits.', regex='^\\d{10,11}$')])),
-                ('active_code', models.CharField(blank=True, max_length=100, null=True)),
-                ('active_code_expires_at', models.DateTimeField(blank=True, null=True)),
-                ('is_active', models.BooleanField(default=False)),
-                ('is_staff', models.BooleanField(default=False)),
-                ('date_joined', models.DateTimeField(auto_now_add=True)),
-                ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
-                ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("password", models.CharField(max_length=128, verbose_name="password")),
+                (
+                    "last_login",
+                    models.DateTimeField(
+                        blank=True, null=True, verbose_name="last login"
+                    ),
+                ),
+                (
+                    "is_superuser",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Designates that this user has all permissions without explicitly assigning them.",
+                        verbose_name="superuser status",
+                    ),
+                ),
+                (
+                    "role",
+                    models.CharField(
+                        choices=[
+                            ("CUSTOMER", "Customer"),
+                            ("HOTEL_OWNER", "Hotel Owner"),
+                            ("Both", "Both"),
+                        ],
+                        default="CUSTOMER",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "email",
+                    models.EmailField(
+                        max_length=254, unique=True, verbose_name="email address"
+                    ),
+                ),
+                (
+                    "phone_number",
+                    models.CharField(
+                        max_length=11,
+                        unique=True,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                message="Phone number must be 10 or 11 digits.",
+                                regex="^\\d{10,11}$",
+                            )
+                        ],
+                    ),
+                ),
+                (
+                    "active_code",
+                    models.CharField(blank=True, max_length=100, null=True),
+                ),
+                ("active_code_expires_at", models.DateTimeField(blank=True, null=True)),
+                ("is_active", models.BooleanField(default=False)),
+                ("is_staff", models.BooleanField(default=False)),
+                ("date_joined", models.DateTimeField(auto_now_add=True)),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.group",
+                        verbose_name="groups",
+                    ),
+                ),
+                (
+                    "user_permissions",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.permission",
+                        verbose_name="user permissions",
+                    ),
+                ),
             ],
             options={
-                'abstract': False,
+                "abstract": False,
             },
         ),
         migrations.CreateModel(
-            name='HotelOwnerProfile',
+            name="HotelOwnerProfile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('slug', models.SlugField(unique=True)),
-                ('company_name', models.CharField(max_length=100)),
-                ('business_license_number', models.CharField(max_length=50, unique=True)),
-                ('bank_account_details', models.CharField(blank=True, max_length=100)),
-                ('tax_id', models.CharField(blank=True, max_length=50)),
-                ('is_verified', models.BooleanField(default=False)),
-                ('company_address', models.TextField(blank=True)),
-                ('phone_number', models.CharField(blank=True, max_length=20)),
-                ('support_email', models.EmailField(blank=True, max_length=254)),
-                ('website', models.URLField(blank=True)),
-                ('id_document', models.ImageField(blank=True, null=True, upload_to='hotel_owners/documents/ids/')),
-                ('logo', models.ImageField(blank=True, null=True, upload_to='hotel_owners/logos/')),
-                ('user', models.OneToOneField(limit_choices_to={'role': 'HOTEL_OWNER'}, on_delete=django.db.models.deletion.CASCADE, related_name='hotel_owner_profile', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("slug", models.SlugField(unique=True)),
+                ("company_name", models.CharField(max_length=100)),
+                (
+                    "business_license_number",
+                    models.CharField(max_length=50, unique=True),
+                ),
+                ("bank_account_details", models.CharField(blank=True, max_length=100)),
+                ("tax_id", models.CharField(blank=True, max_length=50)),
+                ("is_verified", models.BooleanField(default=False)),
+                ("company_address", models.TextField(blank=True)),
+                ("phone_number", models.CharField(blank=True, max_length=20)),
+                ("support_email", models.EmailField(blank=True, max_length=254)),
+                ("website", models.URLField(blank=True)),
+                (
+                    "id_document",
+                    models.ImageField(
+                        blank=True, null=True, upload_to="hotel_owners/documents/ids/"
+                    ),
+                ),
+                (
+                    "logo",
+                    models.ImageField(
+                        blank=True, null=True, upload_to="hotel_owners/logos/"
+                    ),
+                ),
+                (
+                    "user",
+                    models.OneToOneField(
+                        limit_choices_to={"role": "HOTEL_OWNER"},
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="hotel_owner_profile",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='CustomerProfile',
+            name="CustomerProfile",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('slug', models.SlugField(unique=True)),
-                ('full_name', models.CharField(max_length=150)),
-                ('national_id', models.CharField(blank=True, max_length=10)),
-                ('date_of_birth', models.DateField(blank=True, null=True)),
-                ('loyalty_points', models.PositiveIntegerField(default=0)),
-                ('address', models.CharField(blank=True, max_length=255)),
-                ('profile_image', models.ImageField(blank=True, null=True, upload_to='customers/profile_images/')),
-                ('gender', models.CharField(blank=True, choices=[('M', 'Male'), ('F', 'Female')], max_length=1)),
-                ('preferred_payment_method', models.CharField(blank=True, choices=[('CREDIT_CARD', 'Credit Card'), ('PAYPAL', 'PayPal'), ('BANK_TRANSFER', 'Bank Transfer')], max_length=20, null=True)),
-                ('newsletter_optin', models.BooleanField(default=False)),
-                ('user', models.OneToOneField(limit_choices_to={'role': 'CUSTOMER'}, on_delete=django.db.models.deletion.CASCADE, related_name='customer_profile', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("slug", models.SlugField(unique=True)),
+                ("full_name", models.CharField(max_length=150)),
+                ("national_id", models.CharField(blank=True, max_length=10)),
+                ("date_of_birth", models.DateField(blank=True, null=True)),
+                ("loyalty_points", models.PositiveIntegerField(default=0)),
+                ("address", models.CharField(blank=True, max_length=255)),
+                (
+                    "profile_image",
+                    models.ImageField(
+                        blank=True, null=True, upload_to="customers/profile_images/"
+                    ),
+                ),
+                (
+                    "gender",
+                    models.CharField(
+                        blank=True,
+                        choices=[("M", "Male"), ("F", "Female")],
+                        max_length=1,
+                    ),
+                ),
+                (
+                    "preferred_payment_method",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("CREDIT_CARD", "Credit Card"),
+                            ("PAYPAL", "PayPal"),
+                            ("BANK_TRANSFER", "Bank Transfer"),
+                        ],
+                        max_length=20,
+                        null=True,
+                    ),
+                ),
+                ("newsletter_optin", models.BooleanField(default=False)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        limit_choices_to={"role": "CUSTOMER"},
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="customer_profile",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

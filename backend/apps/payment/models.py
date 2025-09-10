@@ -9,8 +9,9 @@ class Payment(models.Model):
     Represents a payment associated with a reservation.
     Tracks amount, payment method, and transaction status.
     """
+
     reservation = models.OneToOneField(
-        Reservation, on_delete=models.CASCADE, related_name='payment'
+        Reservation, on_delete=models.CASCADE, related_name="payment"
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(

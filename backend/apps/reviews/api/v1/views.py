@@ -14,7 +14,7 @@ from .serializers import ReviewSerializer
 from .utils import _call_text_summarizer
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def api_overview(request):
     """
     Endpoint: /api/v1/reviews/overview/
@@ -22,11 +22,13 @@ def api_overview(request):
     Provides a quick overview of review-related API endpoints.
     Useful for onboarding, documentation, or development reference.
     """
-    return Response({
-        "Submit Review for Hotel": "hotel/<hotel_id>/create/",  # POST
-        "List Hotel Reviews": "hotel/<hotel_id>/list/",       # GET
-        "Overview Endpoint": "overview/"
-    })
+    return Response(
+        {
+            "Submit Review for Hotel": "hotel/<hotel_id>/create/",  # POST
+            "List Hotel Reviews": "hotel/<hotel_id>/list/",  # GET
+            "Overview Endpoint": "overview/",
+        }
+    )
 
 
 class CreateHotelReviewView(generics.CreateAPIView):
@@ -34,6 +36,7 @@ class CreateHotelReviewView(generics.CreateAPIView):
     Endpoint: POST /reviews/hotel/<hotel_id>/create/
     Allows an authenticated user to submit a review for a hotel
     """
+
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -48,12 +51,16 @@ class HotelReviewListView(generics.ListAPIView):
     Endpoint: GET /reviews/hotel/<hotel_id>/list/
     Returns a list of all reviews for a hotel, including parent-child relations
     """
+
     serializer_class = ReviewSerializer
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         hotel_id = self.kwargs.get("hotel_id")
-        return Review.objects.filter(hotel__id=hotel_id, parent__isnull=True).order_by("-created_at")
+        return Review.objects.filter(hotel__id=hotel_id, parent__isnull=True).order_by(
+            "-created_at"
+        )
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticatedOrReadOnly])
@@ -107,7 +114,9 @@ def hotel_reviews_summary(request, hotel_id):
         "top_mentions (list of most-mentioned words/items). Return only valid JSON."
     )
 
-    reviews_text = "\n\n".join([f"Rating: {r['rating']}\nComment: {r['comment']}" for r in reviews_list])
+    reviews_text = "\n\n".join(
+        [f"Rating: {r['rating']}\nComment: {r['comment']}" for r in reviews_list]
+    )
     user_msg = UserMessage(
         f"This is a list of {len(reviews_list)} recent reviews for a hotel:\n\n{reviews_text}\n\n"
         "Provide a concise overall summary, pros, cons, and top mentions. Output must be JSON only."
@@ -121,12 +130,14 @@ def hotel_reviews_summary(request, hotel_id):
     # Attach count and avg_rating if model returned valid JSON
     if isinstance(resp, dict):
         resp.setdefault("count", len(reviews_list))
-        resp.setdefault("avg_rating", float(avg_rating) if avg_rating is not None else None)
+        resp.setdefault(
+            "avg_rating", float(avg_rating) if avg_rating is not None else None
+        )
     else:
         resp = {
             "text": str(resp),
             "count": len(reviews_list),
-            "avg_rating": float(avg_rating) if avg_rating is not None else None
+            "avg_rating": float(avg_rating) if avg_rating is not None else None,
         }
 
     cache.set(cache_key, resp, 1)

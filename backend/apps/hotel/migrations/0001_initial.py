@@ -16,102 +16,231 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Hotel',
+            name="Hotel",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('slug', models.SlugField(blank=True, unique=True)),
-                ('description', models.TextField(blank=True)),
-                ('phone_number', models.CharField(blank=True, max_length=20, validators=[django.core.validators.RegexValidator('^\\+?1?\\d{9,15}$', message='Enter a valid phone number.')])),
-                ('email', models.EmailField(blank=True, max_length=254)),
-                ('website', models.URLField(blank=True)),
-                ('is_verified', models.BooleanField(default=False)),
-                ('main_image', models.ImageField(blank=True, null=True, upload_to='hotels/main_images/')),
-                ('has_parking', models.BooleanField(default=False)),
-                ('policy', models.TextField()),
-                ('amenities', models.JSONField(blank=True, default=dict)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('owner', models.ForeignKey(limit_choices_to={'role': 'HOTEL_OWNER'}, on_delete=django.db.models.deletion.CASCADE, related_name='hotels', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=200)),
+                ("slug", models.SlugField(blank=True, unique=True)),
+                ("description", models.TextField(blank=True)),
+                (
+                    "phone_number",
+                    models.CharField(
+                        blank=True,
+                        max_length=20,
+                        validators=[
+                            django.core.validators.RegexValidator(
+                                "^\\+?1?\\d{9,15}$",
+                                message="Enter a valid phone number.",
+                            )
+                        ],
+                    ),
+                ),
+                ("email", models.EmailField(blank=True, max_length=254)),
+                ("website", models.URLField(blank=True)),
+                ("is_verified", models.BooleanField(default=False)),
+                (
+                    "main_image",
+                    models.ImageField(
+                        blank=True, null=True, upload_to="hotels/main_images/"
+                    ),
+                ),
+                ("has_parking", models.BooleanField(default=False)),
+                ("policy", models.TextField()),
+                ("amenities", models.JSONField(blank=True, default=dict)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "owner",
+                    models.ForeignKey(
+                        limit_choices_to={"role": "HOTEL_OWNER"},
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="hotels",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Hotel',
-                'verbose_name_plural': 'Hotels',
-                'ordering': ['-created_at'],
+                "verbose_name": "Hotel",
+                "verbose_name_plural": "Hotels",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='Room',
+            name="Room",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('room_type', models.CharField(choices=[('Single', 'Single'), ('Double', 'Double'), ('Suite', 'Suite'), ('Deluxe', 'Deluxe')], max_length=50)),
-                ('title', models.CharField(max_length=100)),
-                ('slug', models.SlugField(unique=True)),
-                ('guests_count', models.IntegerField(default=1)),
-                ('room_details', models.TextField(help_text='Additional room details and amenities')),
-                ('has_balcony', models.BooleanField(default=False)),
-                ('has_air_conditioning', models.BooleanField(default=True)),
-                ('has_tv', models.BooleanField(default=True)),
-                ('pets', models.BooleanField(default=False)),
-                ('price_per_night', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('capacity', models.PositiveIntegerField()),
-                ('floor', models.PositiveIntegerField(default=1)),
-                ('is_available', models.BooleanField(default=True)),
-                ('rating', models.IntegerField(validators=[django.core.validators.MinValueValidator(0), django.core.validators.MaxValueValidator(5)])),
-                ('main_image', models.ImageField(upload_to='room/images/main_image/')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('hotel', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rooms', to='hotel.hotel')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "room_type",
+                    models.CharField(
+                        choices=[
+                            ("Single", "Single"),
+                            ("Double", "Double"),
+                            ("Suite", "Suite"),
+                            ("Deluxe", "Deluxe"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                ("title", models.CharField(max_length=100)),
+                ("slug", models.SlugField(unique=True)),
+                ("guests_count", models.IntegerField(default=1)),
+                (
+                    "room_details",
+                    models.TextField(help_text="Additional room details and amenities"),
+                ),
+                ("has_balcony", models.BooleanField(default=False)),
+                ("has_air_conditioning", models.BooleanField(default=True)),
+                ("has_tv", models.BooleanField(default=True)),
+                ("pets", models.BooleanField(default=False)),
+                (
+                    "price_per_night",
+                    models.DecimalField(decimal_places=2, max_digits=10),
+                ),
+                ("capacity", models.PositiveIntegerField()),
+                ("floor", models.PositiveIntegerField(default=1)),
+                ("is_available", models.BooleanField(default=True)),
+                (
+                    "rating",
+                    models.IntegerField(
+                        validators=[
+                            django.core.validators.MinValueValidator(0),
+                            django.core.validators.MaxValueValidator(5),
+                        ]
+                    ),
+                ),
+                ("main_image", models.ImageField(upload_to="room/images/main_image/")),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "hotel",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="rooms",
+                        to="hotel.hotel",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='RoomImage',
+            name="RoomImage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to='room/images/')),
-                ('caption', models.CharField(blank=True, max_length=200)),
-                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='hotel.room')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image", models.ImageField(upload_to="room/images/")),
+                ("caption", models.CharField(blank=True, max_length=200)),
+                (
+                    "room",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="images",
+                        to="hotel.room",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='HotelLocation',
+            name="HotelLocation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('country', models.CharField(max_length=100)),
-                ('city', models.CharField(max_length=100)),
-                ('postal_code', models.CharField(blank=True, max_length=20)),
-                ('address', models.TextField()),
-                ('hotel', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='location', to='hotel.hotel')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("country", models.CharField(max_length=100)),
+                ("city", models.CharField(max_length=100)),
+                ("postal_code", models.CharField(blank=True, max_length=20)),
+                ("address", models.TextField()),
+                (
+                    "hotel",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="location",
+                        to="hotel.hotel",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Hotel Location',
-                'verbose_name_plural': 'Hotel Locations',
-                'indexes': [models.Index(fields=['city'], name='hotel_hotel_city_5d1c64_idx'), models.Index(fields=['hotel'], name='hotel_hotel_hotel_i_1c433a_idx')],
+                "verbose_name": "Hotel Location",
+                "verbose_name_plural": "Hotel Locations",
+                "indexes": [
+                    models.Index(fields=["city"], name="hotel_hotel_city_5d1c64_idx"),
+                    models.Index(
+                        fields=["hotel"], name="hotel_hotel_hotel_i_1c433a_idx"
+                    ),
+                ],
             },
         ),
         migrations.CreateModel(
-            name='HotelImage',
+            name="HotelImage",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to='hotels/images/')),
-                ('caption', models.CharField(blank=True, max_length=200)),
-                ('hotel', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='hotel.hotel')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image", models.ImageField(upload_to="hotels/images/")),
+                ("caption", models.CharField(blank=True, max_length=200)),
+                (
+                    "hotel",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="images",
+                        to="hotel.hotel",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Hotel Image',
-                'verbose_name_plural': 'Hotel Images',
-                'indexes': [models.Index(fields=['hotel'], name='hotel_hotel_hotel_i_aa1f75_idx')],
+                "verbose_name": "Hotel Image",
+                "verbose_name_plural": "Hotel Images",
+                "indexes": [
+                    models.Index(
+                        fields=["hotel"], name="hotel_hotel_hotel_i_aa1f75_idx"
+                    )
+                ],
             },
         ),
         migrations.AddIndex(
-            model_name='hotel',
-            index=models.Index(fields=['is_verified'], name='hotel_hotel_is_veri_20e121_idx'),
+            model_name="hotel",
+            index=models.Index(
+                fields=["is_verified"], name="hotel_hotel_is_veri_20e121_idx"
+            ),
         ),
         migrations.AddIndex(
-            model_name='hotel',
-            index=models.Index(fields=['owner'], name='hotel_hotel_owner_i_a44ebb_idx'),
+            model_name="hotel",
+            index=models.Index(fields=["owner"], name="hotel_hotel_owner_i_a44ebb_idx"),
         ),
         migrations.AddIndex(
-            model_name='hotel',
-            index=models.Index(fields=['slug'], name='hotel_hotel_slug_13fafc_idx'),
+            model_name="hotel",
+            index=models.Index(fields=["slug"], name="hotel_hotel_slug_13fafc_idx"),
         ),
     ]
