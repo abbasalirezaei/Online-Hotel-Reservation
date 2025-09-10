@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 
-app_name="accounts_v1"
+app_name="api_v1"
 from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
