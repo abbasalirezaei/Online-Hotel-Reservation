@@ -149,19 +149,17 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
         'rest_framework.filters.SearchFilter',
     ],
-
-    'DEFAULT_THROTTLE_CLASSES': [
+    'DEFAULT_THROTTLE_CLASSES': [] if DEBUG else [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '2/minute',   # max 100 requests per day for unauthenticated users
-        'user': '3/minute',    # max 100 requests per day for authenticated users
-
-    }
-    
-
+        'anon': '10/minute',
+        'user': '30/minute',
+        'activation': '5/minute',
+        'password_reset': '3/minute',
+    },
 }
 
 
