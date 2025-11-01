@@ -1,13 +1,11 @@
-# reservations/serializers.py
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
-from django.db import transaction
-from decimal import Decimal
 
-from apps.reservations.models import Reservation, BookingStatus, CheckIn
-from apps.hotel.models import Room
-from apps.discount.models import Coupon
+
+from apps.reservations.models import Reservation
+
+from apps.reservations.services import create_reservation
 
 
 class ReservationCreateSerializer(serializers.ModelSerializer):
@@ -44,47 +42,20 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        # All complex business logic is now delegated to the service layer.
         request = self.context["request"]
-        user = request.user.customer_profile
-        room = validated_data["room"]
-        check_in = validated_data["checking_date"]
-        check_out = validated_data["checkout_date"]
-        nights = (check_out - check_in).days
+        user_profile = request.user.customer_profile
 
-        coupon = None
-        code = validated_data.get("coupon_code")
-        if code:
-            try:
-                coupon = Coupon.objects.get(code=code)
-                if not coupon.is_valid():
-                    raise ValidationError("Invalid or expired coupon.")
-            except Coupon.DoesNotExist:
-                raise ValidationError("Coupon not found.")
-
-        base_price = room.price_per_night
-        discount = Decimal(coupon.discount_percent) if coupon else Decimal("0")
-        total_price = base_price * nights * (Decimal("1") - discount / Decimal("100"))
-
-        with transaction.atomic():
-            reservation = Reservation.objects.create(
-                user=user,
-                room=room,
-                checking_date=check_in,
-                checkout_date=check_out,
-                nights=nights,
-                coupon=coupon,
-                prefered_payment_method=validated_data["prefered_payment_method"],
-                total_price=total_price,
-                booking_status=BookingStatus.PENDING,
-            )
-
-            CheckIn.objects.create(
-                reservation=reservation,
-                customer=user,
-                room=room,
-                phone_number=user.user.phone_number,
-                email=user.user.email,
-            )
+        # The service function handles all logic, including coupon
+        # validation, price calculation, and the atomic transaction.
+        reservation = create_reservation(
+            user_profile=user_profile,
+            room=validated_data["room"],
+            check_in_date=validated_data["checking_date"],
+            check_out_date=validated_data["checkout_date"],
+            prefered_payment_method=validated_data["prefered_payment_method"],
+            coupon_code=validated_data.get("coupon_code"),
+        )
 
         return reservation
 
