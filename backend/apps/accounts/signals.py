@@ -30,3 +30,21 @@ def notify_owner_verification(sender, instance, created, **kwargs):
             priority="info",
             redirect_url="/hotel-owner-profile/",
         )
+
+
+@receiver(post_save, sender=HotelOwnerProfile)
+def update_role_when_verified(sender, instance, created, **kwargs):
+    """
+    Update user role to 'hotel_owner' after the profile is verified.
+    """
+    if not created and instance.is_verified:
+        instance.user.role = "hotel_owner"
+        instance.user.save(update_fields=["role"])
+
+        # Notify user about approval
+        send_custom_notification.delay(
+            user_id=instance.user.id,
+            message="Your hotel owner request has been approved 🎉 You can now create your hotel.",
+            priority="success",
+            redirect_url="/hotel-owner-profile/",
+        )

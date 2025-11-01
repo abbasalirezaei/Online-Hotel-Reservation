@@ -138,7 +138,7 @@ class UserReservationListView(generics.ListAPIView):
         return (
             Reservation.objects.select_related(
                 "room", "room__hotel"
-            )  # Optimize related data fetching
+            )
             .filter(user__user=self.request.user)
             .order_by("-booking_date")
         )

@@ -9,6 +9,13 @@ def api_client():
 
 
 @pytest.fixture
+def regular_user(db, UserFactory):
+    """
+    یک کاربر عادی با نقش customer می‌سازد.
+    """
+    return UserFactory(role="customer")
+
+@pytest.fixture
 def customer_user():
     return UserFactory(role="customer")
 

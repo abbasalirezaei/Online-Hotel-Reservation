@@ -82,15 +82,11 @@ def request_hotel_owner(user, validated_data):
             "You have already submitted a hotel owner request."
         )
 
-    # create hotel owner profile and update user role
-    user.role = "hotel_owner"
-    user.save(update_fields=["role"])
-
     profile = HotelOwnerProfile.objects.create(
         user=user, is_verified=False, **validated_data
     )
 
-    # Send notification to the user
+    # Notify user about the submission
     send_custom_notification.delay(
         user.id,
         message="Your request to become a hotel owner has been submitted. You will be notified once it's reviewed by an admin.",

@@ -8,7 +8,7 @@ media
 
 # Backup files # 
 *.bak 
-
+static
 .env
 
 # If you are using PyCharm # 

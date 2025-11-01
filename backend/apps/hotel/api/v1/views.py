@@ -32,7 +32,8 @@ from apps.hotel.models import Hotel, HotelImage, Amenity, HotelLocation, Room, R
 from apps.reservations.models import Reservation
 from apps.notifications.tasks import send_custom_notification
 from .filters import RoomFilter
-
+from .services.cached_manager import SimpleCacheManager
+from django.conf import settings
 
 @api_view(["GET"])
 def api_overview(request):
@@ -67,10 +68,24 @@ class HotelListCreateView(generics.ListCreateAPIView):
     ordering_fields = ["created_at"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    # Cache for 15 minutes
-    @method_decorator(cache_page(60 * 15, key_prefix="hotel_list"))
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        """
+        Returns a cached list of verified hotels unless in DEBUG mode.
+        Cache key is generated based on request path.
+        """
+        if settings.DEBUG:
+            return super().list(request, *args, **kwargs)
+
+        cache_key = SimpleCacheManager.generate_list_key('hotel', request)
+        cached_data = SimpleCacheManager.get(cache_key)
+
+        if cached_data is not None:
+            # Optional: log cache hit
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        SimpleCacheManager.set(cache_key, response.data, timeout=300)  # 5 minutes
+        return response
 
     def get_queryset(self):
         queryset = (
@@ -78,12 +93,12 @@ class HotelListCreateView(generics.ListCreateAPIView):
                 room_count=Count("rooms", distinct=True),
                 total_reviews=Count("reviews", distinct=True),
             )
-            .only("id", "name", "description", "owner_id", "created_at")
+            .only("id", "name", "description", "owner_id", "created_at", "location")
+            .select_related("owner", "location")
             .prefetch_related(
                 "images",
                 Prefetch("amenities", queryset=Amenity.objects.only("id", "name")),
             )
-            .select_related("owner", "location")
         )
         return queryset
 
@@ -120,7 +135,8 @@ class HotelDetailView(generics.RetrieveUpdateAPIView):
         )
         .select_related("owner", "location")
         .prefetch_related(
-            "images", Prefetch("amenities", queryset=Amenity.objects.only("id", "name"))
+            "images", Prefetch(
+                "amenities", queryset=Amenity.objects.only("id", "name"))
         )
         .all()
     )

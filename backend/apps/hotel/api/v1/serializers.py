@@ -73,27 +73,24 @@ class HotelListSerializer(serializers.ModelSerializer):
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     room_count = serializers.IntegerField(read_only=True)
     total_reviews = serializers.IntegerField(read_only=True)
-
+    location = HotelLocationSerializer(allow_null=True)
     class Meta:
         model = Hotel
-        fields = ["id", "name", "owner", "images", "room_count", "total_reviews"]
+        fields = ["id", "name", "owner", "images", "room_count", "total_reviews","location"]
         read_only_fields = ["owner", "room_count", "total_reviews"]
 
 
 # ----------- Hotel Create Serializer -----------
-
-
 class HotelCreateSerializer(serializers.ModelSerializer):
     uploaded_images = serializers.ListField(
-        child=serializers.ImageField(
-            max_length=1000000, allow_empty_file=False, use_url=False
-        ),
+        child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
         write_only=True,
         required=False,
     )
     amenities = serializers.PrimaryKeyRelatedField(
         queryset=Amenity.objects.all(), many=True, required=False
     )
+    location = HotelLocationSerializer()
 
     class Meta:
         model = Hotel
@@ -103,6 +100,7 @@ class HotelCreateSerializer(serializers.ModelSerializer):
             "email",
             "website",
             "main_image",
+            "location",
             "has_parking",
             "policy",
             "amenities",
@@ -111,21 +109,24 @@ class HotelCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["room_count", "total_reviews"]
 
+    def validate_policy(self, value):
+        if len(value) < 10:
+            raise serializers.ValidationError("Policy must be at least 10 characters long.")
+        return value
+
     def create(self, validated_data):
         uploaded_images = validated_data.pop("uploaded_images", [])
         amenities = validated_data.pop("amenities", [])
+        location_data = validated_data.pop("location")
         user = self.context["request"].user
 
         with transaction.atomic():
-            hotel = Hotel.objects.create(
-                owner=user, is_verified=False, **validated_data
-            )
+            hotel = Hotel.objects.create(owner=user, is_verified=False, **validated_data)
+            HotelLocation.objects.create(hotel=hotel, **location_data)
             hotel.amenities.set(amenities)
             for image_data in uploaded_images:
                 HotelImage.objects.create(hotel=hotel, image=image_data)
-
         return hotel
-
 
 # ----------- Hotel Detail Serializer -----------
 

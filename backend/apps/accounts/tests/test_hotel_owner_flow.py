@@ -14,22 +14,25 @@ from .factories import (
 # 1. Request Submission Tests
 
 
-# @pytest.mark.django_db
-# def test_successful_owner_request(api_client):
-#     user = UserFactory(role="customer")
-#     api_client.force_authenticate(user)
+@pytest.mark.django_db
+def test_successful_owner_request(api_client):
+    """
+    Test successful submission of a hotel owner request.
+    """
+    user = UserFactory(role="customer")
+    api_client.force_authenticate(user)
 
-#     response = api_client.post(reverse("accounts:api_v1:request-hotel-owner"), {
-#         "company_name": "MyHotel",
-#         "business_license_number": "ABC123"
-#     })
+    response = api_client.post(reverse("accounts:api_v1:request-hotel-owner"), {
+        "company_name": "MyHotel",
+        "business_license_number": "ABC123"
+    })
 
-#     assert response.status_code == 201
-#     profile = HotelOwnerProfile.objects.get(user=user)
-#     assert profile.company_name == "MyHotel"
-#     assert profile.is_verified is False
-#     user.refresh_from_db()
-#     assert user.role == "customer"
+    assert response.status_code == 201
+    profile = HotelOwnerProfile.objects.get(user=user)
+    assert profile.company_name == "MyHotel"
+    assert profile.is_verified is False
+    user.refresh_from_db()
+    assert user.role == "customer"  # User role should not change
 
 
 @pytest.mark.django_db
@@ -131,16 +134,19 @@ def test_notify_on_hotel_owner_approval():
 #  Role Integrity Test
 
 
-# @pytest.mark.django_db
-# def test_role_not_changed_on_request(api_client):
-#     user = UserFactory(role="customer")
-#     api_client.force_authenticate(user)
+@pytest.mark.django_db
+def test_role_changes_after_admin_verification():
+    """
+    Test user role changes after admin verification.
+    """
+    profile = HotelOwnerProfileFactory(is_verified=False)
+    user = profile.user
+    assert user.role == "customer"
 
-#     response = api_client.post(reverse("accounts:api_v1:request-hotel-owner"), {
-#         "company_name": "RoleTestHotel",
-#         "business_license_number": "ROLE123"
-#     })
+    # Admin verifies the profile
+    profile.is_verified = True
+    profile.save()
 
-#     assert response.status_code == 201
-#     user.refresh_from_db()
-#     assert user.role == "customer"
+    # Check if the user role is updated
+    user.refresh_from_db()
+    assert user.role == "hotel_owner"

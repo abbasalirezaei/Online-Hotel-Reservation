@@ -1,0 +1,1262 @@
+utils.py
+import random
+
+
+# -----------------------------------------------------------------------------
+def create_random_code(count):
+    count -= 1
+    return random.randint(10**count, 10 ** (count + 1) - 1)
+===
+urls.py
+
+from django.urls import path, include
+
+
+app_name = "accounts"
+urlpatterns = [
+    path("api/v1/", include("apps.accounts.api.v1.urls")),
+]
+
+
+=====
+tasks.py
+
+import logging
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
+from celery import shared_task
+from django.contrib.auth import get_user_model
+from django.utils.crypto import get_random_string
+from django.utils import timezone
+from datetime import timedelta
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task
+def send_activation_email_task(user_id, email):
+
+    User = get_user_model()
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        logger.error(f"User with ID {user_id} not found for email activation.")
+        return False
+
+    code = get_random_string(
+        length=6, allowed_chars="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    )
+    user.active_code = code
+    user.active_code_expires_at = timezone.now() + timedelta(minutes=2)
+    user.save(update_fields=["active_code", "active_code_expires_at"])
+
+    context = {
+        "code": code,
+        "user": user,
+        "activation_link": f"http://localhost:8000/accounts/api/v1/activate/code/",
+    }
+    subject = "Activate Your Account"
+    from_email = "no-reply@hotel.com"
+    to_email = [email]
+
+    text_content = f"Your activation code is: {code}"
+    html_content = render_to_string("email/activation_email.html", context)
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to_email)
+    msg.attach_alternative(html_content, "text/html")
+    try:
+        msg.send()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send activation email to {email}: {str(e)}")
+        return False
+
+
+====signals.py
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+
+# local imports
+from .models import User, CustomerProfile
+from apps.accounts.models import HotelOwnerProfile
+from apps.accounts.tasks import send_activation_email_task
+from apps.notifications.tasks import send_custom_notification
+
+
+@receiver(post_save, sender=User)
+def create_user_customer(sender, instance, created, **kwargs):
+    if created:
+        CustomerProfile.objects.create(user=instance)
+
+
+@receiver(post_save, sender=User)
+def send_activation_email_signal(sender, instance, created, **kwargs):
+    if created and not instance.is_active:
+        send_activation_email_task.delay(instance.id, instance.email)
+
+
+@receiver(post_save, sender=HotelOwnerProfile)
+def notify_owner_verification(sender, instance, created, **kwargs):
+    if not created and instance.is_verified:
+        send_custom_notification.delay(
+            user_id=instance.user.id,
+            message="Your hotel owner request has been approved 🎉 You can now create your hotel.",
+            priority="info",
+            redirect_url="/hotel-owner-profile/",
+        )
+
+
+============
+
+service.py
+
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.tokens import default_token_generator
+
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+
+
+from apps.accounts.models import HotelOwnerProfile
+
+from apps.notifications.tasks import send_custom_notification
+from apps.accounts.tasks import send_activation_email_task
+from apps.accounts.exceptions import (
+    ActivationCodeError,
+    PasswordMismatchError,
+    AlreadyHotelOwnerError,
+)
+
+User = get_user_model()
+
+
+def validate_activation_code(code):
+    """
+    Validate the activation code for a user account.
+    """
+    try:
+        user = User.objects.get(active_code=code)
+    except User.DoesNotExist:
+        raise ActivationCodeError("Invalid activation code.")
+    if user.is_active:
+        raise ActivationCodeError("Account already activated.")
+    if user.active_code_expires_at < timezone.now():
+        raise ActivationCodeError("Activation code expired.")
+    return user
+
+
+def resend_activation_code(email):
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        raise ActivationCodeError("No account found with this email.")
+
+    if user.is_active:
+        raise ActivationCodeError("Account is already activated.")
+
+    send_activation_email_task.delay(user.id, user.email)
+    return user
+
+
+def send_password_reset_email(user):
+    token = default_token_generator.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    reset_url = f"http://localhost:3000/password/reset/confirm/?uid={uid}&token={token}"
+    subject = "Reset your password"
+    message = render_to_string(
+        "registration/password_reset_email.html", {"user": user, "reset_url": reset_url}
+    )
+    send_mail(subject, message, "ali@gmail.com", [user.email])
+    return uid, token
+
+
+def change_user_password(
+    user, request, current_password, new_password, confirm_password
+):
+    if new_password != confirm_password:
+        raise PasswordMismatchError("New password and confirmation do not match.")
+
+    if not user.check_password(current_password):
+        raise PasswordMismatchError("Current password is incorrect.")
+
+    user.set_password(new_password)
+    user.save()
+    update_session_auth_hash(request, user)
+
+
+def request_hotel_owner(user, validated_data):
+    if HotelOwnerProfile.objects.filter(user=user).exists():
+        raise AlreadyHotelOwnerError(
+            "You have already submitted a hotel owner request."
+        )
+
+    # create hotel owner profile and update user role
+    user.role = "hotel_owner"
+    user.save(update_fields=["role"])
+
+    profile = HotelOwnerProfile.objects.create(
+        user=user, is_verified=False, **validated_data
+    )
+
+    # Send notification to the user
+    send_custom_notification.delay(
+        user.id,
+        message="Your request to become a hotel owner has been submitted. You will be notified once it's reviewed by an admin.",
+        priority="info",
+        redirect_url="/hotel-owner-profile/",
+    )
+
+    return profile
+=======
+
+exceptions.py
+
+
+class ActivationCodeError(Exception):
+    """Raised when activation code is invalid, expired, or already used."""
+
+    pass
+
+
+class PasswordMismatchError(Exception):
+    """Raised when new password and confirmation do not match."""
+
+    pass
+
+
+class AlreadyHotelOwnerError(Exception):
+    """Raised when user has already submitted a hotel owner request."""
+
+    pass
+
+
+
+from django.apps import AppConfig
+
+
+class AccountsConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.accounts"
+
+    def ready(self):
+        import apps.accounts.signals
+
+
+===:
+models:
+
+
+
+from django.db import models
+
+from django.utils.text import slugify
+
+
+class HotelOwnerProfile(models.Model):
+    slug = models.SlugField(unique=True)
+    user = models.OneToOneField(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="hotel_owner_profile",
+        limit_choices_to={"role": "hotel_owner"},
+    )
+    company_name = models.CharField(max_length=100)
+    business_license_number = models.CharField(max_length=50, unique=True)
+    bank_account_details = models.CharField(max_length=100, blank=True)
+    tax_id = models.CharField(max_length=50, blank=True)
+    is_verified = models.BooleanField(default=False)
+    company_address = models.TextField(blank=True)
+    phone_number = models.CharField(max_length=20, blank=True)
+    support_email = models.EmailField(blank=True)
+    website = models.URLField(blank=True)
+    id_document = models.ImageField(
+        upload_to="hotel_owners/documents/ids/", blank=True, null=True
+    )
+    logo = models.ImageField(upload_to="hotel_owners/logos/", blank=True, null=True)
+
+    def __str__(self):
+        return f"Hotel Owner Profile for {self.user.email}"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Automatically generate slug from full_name
+            base_slug = slugify(self.company_name)
+            slug = base_slug
+            counter = 1
+            # Ensure uniqueness
+            while HotelOwnerProfile.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+
+
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    PermissionsMixin,
+    BaseUserManager,
+)
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django.utils.text import slugify
+
+
+class CustomerProfile(models.Model):
+    slug = models.SlugField(unique=True)
+    user = models.OneToOneField(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="customer_profile",
+        limit_choices_to={"role": "customer"},
+    )
+    full_name = models.CharField(max_length=150)
+    national_id = models.CharField(max_length=10, blank=True)
+    date_of_birth = models.DateField(blank=True, null=True)
+    loyalty_points = models.PositiveIntegerField(default=0)
+    address = models.CharField(max_length=255, blank=True)
+    profile_image = models.ImageField(
+        upload_to="customers/profile_images/", blank=True, null=True
+    )
+    gender = models.CharField(
+        max_length=1, choices=[("M", "Male"), ("F", "Female")], blank=True
+    )
+    preferred_payment_method = models.CharField(
+        max_length=20,
+        choices=[
+            ("CREDIT_CARD", _("Credit Card")),
+            ("PAYPAL", _("PayPal")),
+            ("BANK_TRANSFER", _("Bank Transfer")),
+        ],
+        blank=True,
+        null=True,
+    )
+    newsletter_optin = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Customer Profile for {self.user.email}"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Automatically generate slug from full_name
+            base_slug = slugify(self.full_name)
+            slug = base_slug
+            counter = 1
+            # Ensure uniqueness
+            while CustomerProfile.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
+
+
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    PermissionsMixin,
+    BaseUserManager,
+)
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import RegexValidator
+from django.db import models
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, email, phone_number, password=None, **extra_fields):
+        if not email:
+            raise ValueError("ایمیل الزامی است")
+        if not phone_number:
+            raise ValueError("شماره تلفن الزامی است")
+        email = self.normalize_email(email)
+        user = self.model(email=email, phone_number=phone_number, **extra_fields)
+        user.set_password(password)
+        user.save()
+        return user
+
+    def create_superuser(self, email, phone_number, password, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+        return self.create_user(email, phone_number, password, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+
+    ROLE_CHOICES = (
+        ("admin", "Admin"),
+        ("hotel_owner", "Hotel Owner"),
+        ("customer", "Customer"),
+    )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="customer")
+    email = models.EmailField(_("email address"), unique=True)
+    phone_number = models.CharField(
+        max_length=11,
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r"^\d{10,11}$", message="Phone number must be 10 or 11 digits."
+            )
+        ],
+    )
+    active_code = models.CharField(max_length=100, null=True, blank=True)
+    active_code_expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(auto_now_add=True)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["phone_number"]
+
+    objects = UserManager()
+
+    def __str__(self):
+        return self.email
+
+api folder:
+
+
+
+
+vies.py
+
+from django.http import response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import CreateAPIView, RetrieveUpdateAPIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import generics, status
+
+
+from .permissions import IsVerifiedHotelOwner, IsCustomer
+
+from .serializers import (
+    UserSerializer,
+    CustomerProfileSerializer,
+    HotelOwnerProfileSerializer,
+    HotelOwnerProfileCreateRequestSerializer,
+    MyTokenObtainPairSerializer,
+    RegistrationSerializer,
+    PasswordResetSerializer,
+    PasswordResetConfirmSerializer,
+    ActivationCodeSerializer,
+    ResendActivationCodeSerializer,
+    UserDashboardSerializer,
+)
+
+from apps.accounts.services import (
+    validate_activation_code,
+    resend_activation_code,
+    send_password_reset_email,
+    change_user_password,
+    request_hotel_owner,
+)
+
+
+from apps.accounts.services import request_hotel_owner
+from apps.accounts.exceptions import AlreadyHotelOwnerError
+from apps.accounts.exceptions import (
+    PasswordMismatchError,
+    ActivationCodeError,
+    AlreadyHotelOwnerError,
+)
+
+
+@api_view(["GET"])
+def getRoutes(request):
+    """
+    Returns available API endpoints for inspection/debugging.
+    """
+    routes = [
+        "token/",
+        "token/refresh/",
+        "register/",
+        "activate/code/",
+        "activation/resend/",
+        "customer-profile/",
+        "hotel-owner-profile/",
+        "request-hotel-owner/",
+        "dashboard/",
+        "password/reset/",
+        "password/reset/confirm/",
+        "password/change/",
+    ]
+    return Response(routes)
+
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    """
+    JWT token generation endpoint.
+    """
+
+    serializer_class = MyTokenObtainPairSerializer
+
+
+class RegistrationApiView(generics.GenericAPIView):
+    """
+    Handles user registration and sends activation code.
+    """
+
+    serializer_class = RegistrationSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            email = serializer.validated_data["email"]
+            return Response(
+                {
+                    "email": email,
+                    "message": "Account created successfully. Please check your email to activate your account.",
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class VerifyActivationCodeAPIView(APIView):
+    def post(self, request):
+        serializer = ActivationCodeSerializer(data=request.data)
+        if serializer.is_valid():
+            code = serializer.validated_data["code"]
+            try:
+                user = validate_activation_code(code)
+            except ActivationCodeError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            user.is_active = True
+            user.active_code = None
+            user.active_code_expires_at = None
+            user.save(
+                update_fields=["is_active", "active_code", "active_code_expires_at"]
+            )
+            return Response(
+                {"message": "Account activated successfully."},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResendActivationCodeView(generics.GenericAPIView):
+    """
+    Resends activation code via email for inactive users.
+    """
+
+    serializer_class = ResendActivationCodeSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        try:
+            resend_activation_code(email)
+        except ActivationCodeError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"message": "Activation code resent successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetView(generics.GenericAPIView):
+    """
+    Sends password reset email with token and UID.
+    """
+
+    serializer_class = PasswordResetSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = serializer.user
+        uid, token = send_password_reset_email(user)
+        return Response(
+            {"detail": "Password reset email sent.", "uid": uid, "token": token},
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmView(generics.GenericAPIView):
+    """
+    Confirms and sets new password using token and UID.
+    """
+
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password has been reset successfully."})
+
+
+class ChangePasswordView(APIView):
+    """
+    Allows authenticated user to change their current password.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        user = request.user
+        current_password = request.data.get("current_password")
+        new_password = request.data.get("new_password")
+        confirm_password = request.data.get("confirm_password")
+        try:
+            change_user_password(
+                user, request, current_password, new_password, confirm_password
+            )
+        except PasswordMismatchError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"detail": "Password changed successfully"})
+
+
+class UserDashboardView(APIView):
+    """
+    Returns dashboard data for the authenticated user.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserDashboardSerializer(request.user)
+        return Response(serializer.data)
+
+
+class CustomerProfileView(RetrieveUpdateAPIView):
+    """
+    Retrieve or update the authenticated customer's profile.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = CustomerProfileSerializer
+
+    def get_object(self):
+        return self.request.user.customer_profile
+
+
+class RequestHotelOwnerView(CreateAPIView):
+    """
+    Allows authenticated customers to request to become hotel owners.
+    """
+
+    serializer_class = HotelOwnerProfileCreateRequestSerializer
+    permission_classes = [IsCustomer]
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            profile = request_hotel_owner(user, serializer.validated_data)
+        except AlreadyHotelOwnerError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            self.get_serializer(profile).data, status=status.HTTP_201_CREATED
+        )
+
+
+class HotelOwnerProfileView(RetrieveUpdateAPIView):
+    """
+    Retrieve or update the authenticated hotel owner's profile.
+    """
+
+    permission_classes = [IsVerifiedHotelOwner]
+    serializer_class = HotelOwnerProfileSerializer
+
+    def get_object(self):
+        return self.request.user.hotel_owner_profile
+
+
+
+
+from django.urls import path
+from . import views
+
+app_name = "api_v1"
+from rest_framework_simplejwt.views import (
+    TokenRefreshView,
+)
+
+urlpatterns = [
+    # JWT Authentication
+    path("token/", views.MyTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # User Registration & Activation
+    path("register/", views.RegistrationApiView.as_view(), name="auth_register"),
+    path(
+        "activate/code/",
+        views.VerifyActivationCodeAPIView.as_view(),
+        name="verify-activation-code",
+    ),
+    path(
+        "activation/resend/",
+        views.ResendActivationCodeView.as_view(),
+        name="activation-resend",
+    ),
+    # Hotel Owner Request
+    path(
+        "request-hotel-owner/",
+        views.RequestHotelOwnerView.as_view(),
+        name="request-hotel-owner",
+    ),
+    path(
+        "hotel-owner-profile/",
+        views.HotelOwnerProfileView.as_view(),
+        name="hotel-owner-profile",
+    ),
+    # Password Management
+    path("password/reset/", views.PasswordResetView.as_view(), name="password_reset"),
+    path(
+        "password/reset/confirm/",
+        views.PasswordResetConfirmView.as_view(),
+        name="password_reset_confirm",
+    ),
+    path(
+        "password/change/", views.ChangePasswordView.as_view(), name="change_password"
+    ),
+    # User Info
+    path("dashboard/", views.UserDashboardView.as_view(), name="user_dashboard"),
+    path(
+        "customer-profile/",
+        views.CustomerProfileView.as_view(),
+        name="customer_profile",
+    ),
+    # Misc
+    path("", views.getRoutes),
+]
+
+
+from django.contrib.auth.password_validation import validate_password
+
+from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode
+from rest_framework.exceptions import ValidationError
+
+from apps.reservations.api.v1.serializers import ReservationListSerializer
+from apps.accounts.models import User, CustomerProfile, HotelOwnerProfile
+import re
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email"]
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        token["email"] = user.email
+        token["is_admin"] = user.groups.filter(name="admin").exists()
+        token["is_staff"] = user.is_staff
+
+        return token
+
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
+    password2 = serializers.CharField(write_only=True, required=True)
+    full_name = serializers.CharField(max_length=255)
+
+    class Meta:
+        model = User
+        fields = ["email", "phone_number", "full_name", "password", "password2"]
+
+    def validate_phone_number(self, value):
+        """
+        Custom validator for phone number
+        """
+        if not re.match(r"^\d{10,11}$", value):
+            raise serializers.ValidationError("Phone number must be 10 or 11 digits.")
+
+        if User.objects.filter(phone_number=value).exists():
+            raise serializers.ValidationError(
+                "This phone number is already registered."
+            )
+
+        return value
+
+    def validate(self, attrs):
+        password = attrs.get("password")
+        password2 = attrs.get("password2")
+
+        if password != password2:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        if len(password) < 10:
+            raise serializers.ValidationError(
+                {"password": "Password must be at least 10 characters long."}
+            )
+
+        if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
+            raise serializers.ValidationError(
+                {"password": "Password must contain both letters and numbers."}
+            )
+
+        if User.objects.filter(email=attrs.get("email")).exists():
+            raise serializers.ValidationError(
+                {"email": "This email is already registered."}
+            )
+
+        # Django built-in password validators (optional but good)
+        validate_password(password)
+
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("password2")
+        full_name = validated_data.pop("full_name")
+        password = validated_data.pop("password")
+
+        user = User.objects.create_user(
+            email=validated_data["email"],
+            phone_number=validated_data["phone_number"],
+            password=password,
+            role="customer",
+            is_active=False,  # Require email activation
+        )
+
+        # اگر سیگنال باشه خودش ساخته میشه، ولی اگه نباشه:
+        if hasattr(user, "customer_profile"):
+            user.customer_profile.full_name = full_name
+            user.customer_profile.save()
+
+        return user
+
+
+class ActivationCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=6)
+
+
+class ResendActivationCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    user = None  # Add a user field to store the user instance
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email=value)
+        except User.DoesNotExist:
+            raise ValidationError("User with this email address does not exist.")
+        self.user = user  # Store the user instance in the serializer
+        return value
+
+    def save(self):
+        user = self.user  # Retrieve the user from the serializer
+        token = default_token_generator.make_token(user)
+        user.set_reset_password_token(token)
+        user.send_reset_password_email()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    uid = serializers.CharField()
+    password = serializers.CharField(style={"input_type": "password"}, write_only=True)
+    confirm_password = serializers.CharField(
+        style={"input_type": "password"}, write_only=True
+    )
+
+    def validate(self, attrs):
+        try:
+            uid = force_str(urlsafe_base64_decode(attrs["uid"]))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise ValidationError("Invalid password reset token.")
+
+        if not default_token_generator.check_token(user, attrs["token"]):
+            raise ValidationError("Invalid password reset token.")
+
+        password = attrs["password"]
+        confirm_password = attrs["confirm_password"]
+
+        # Validate password strength
+        validate_password(password)
+
+        if password != confirm_password:
+            raise ValidationError("Passwords do not match.")
+
+        attrs["user"] = user
+        return attrs
+
+    def save(self):
+        user = self.validated_data["user"]
+        password = self.validated_data["password"]
+        user.set_password(password)
+        user.save()
+
+
+class UserDashboardSerializer(serializers.ModelSerializer):
+    """Serializer for user dashboard view"""
+
+    booking_history = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "phone_number",
+            "role",
+            "date_joined",
+            "is_active",
+            "booking_history",
+        ]
+        read_only_fields = [
+            "id",
+            "email",
+            "phone_number",
+            "role",
+            "date_joined",
+            "is_active",
+            "booking_history",
+        ]
+
+    def get_booking_history(self, obj):
+        """
+        Returns the user's booking history through their customer profile.
+        Filters and serializes related reservations efficiently.
+        """
+        profile = getattr(obj, "customer_profile", None)
+        if profile:
+            reservations_qs = profile.reservations.select_related("room__hotel")
+            return ReservationListSerializer(reservations_qs, many=True).data
+        return []
+
+
+class CustomerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerProfile
+        fields = [
+            "full_name",
+            "national_id",
+            "date_of_birth",
+            "loyalty_points",
+            "address",
+            "profile_image",
+            "gender",
+            "preferred_payment_method",
+            "newsletter_optin",
+        ]
+        read_only_fields = ["loyalty_points"]
+
+
+class HotelOwnerProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HotelOwnerProfile
+        fields = [
+            "company_name",
+            "business_license_number",
+            "bank_account_details",
+            "tax_id",
+            "is_verified",
+            "company_address",
+            "phone_number",
+            "support_email",
+            "website",
+            "id_document",
+            "logo",
+        ]
+        read_only_fields = ["is_verified"]
+
+
+class HotelOwnerProfileCreateRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HotelOwnerProfile
+        exclude = ["user", "is_verified", "slug"]
+
+
+
+from rest_framework import permissions
+from apps.accounts.models import HotelOwnerProfile
+
+from rest_framework.permissions import BasePermission
+
+
+class IsVerifiedHotelOwner(BasePermission):
+    """
+    Allows access only to authenticated users with role 'hotel_owner'
+    and a verified hotel owner profile.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated or user.role != "hotel_owner":
+            return False
+
+        profile = getattr(user, "hotel_owner_profile", None)
+        return profile and profile.is_verified is True
+
+
+class IsCustomer(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "customer"
+
+
+class IsAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "admin"
+
+
+tests:
+
+
+import factory
+import pytest
+from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
+from apps.accounts.models import HotelOwnerProfile
+
+# -------------------------------
+# 🔧 Fixtures
+# -------------------------------
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
+
+
+@pytest.fixture(scope="session")
+def celery_worker_parameters():
+    return {"queues": ["default"]}
+
+
+# -------------------------------
+# 👤 User Factory
+# -------------------------------
+
+User = get_user_model()
+
+
+class UserFactory(factory.django.DjangoModelFactory):
+    """
+    Creates a user with customizable role.
+    Default role is 'customer'.
+    """
+
+    class Meta:
+        model = User
+        skip_postgeneration_save = True
+
+    email = factory.Faker("email")
+    password = factory.PostGenerationMethodCall("set_password", "pass1234")
+    phone_number = factory.Sequence(lambda n: f"091234567{n % 10}")
+    role = "customer"
+    is_active = True
+    is_staff = False
+    is_superuser = False
+
+
+# -------------------------------
+# 🏨 Hotel Owner Factory
+# -------------------------------
+
+
+class HotelOwnerProfileFactory(factory.django.DjangoModelFactory):
+    """
+    Creates a hotel owner .
+    Default is unverified. Use is_verified=True for verified profiles.
+    """
+
+    class Meta:
+        model = HotelOwnerProfile
+
+    user = factory.SubFactory(UserFactory, role="hotel_owner")
+    company_name = factory.Faker("company")
+    business_license_number = factory.Sequence(lambda n: f"BL-{n}")
+    is_verified = False
+
+
+"""
+
+
+# Customer user
+customer = UserFactory(role="customer")
+
+---------------
+# Hotel owner user
+owner = UserFactory(role="hotel_owner")
+
+# Unverified hotel owner profile
+unverified_profile = HotelOwnerProfileFactory()
+
+# Verified hotel owner profile
+verified_profile = HotelOwnerProfileFactory(is_verified=True)
+
+----------------------
+# Admin user
+admin = UserFactory(role="admin", is_staff=True, is_superuser=True)
+
+
+"""
+import pytest
+from django.urls import reverse
+from apps.accounts.models import HotelOwnerProfile
+from apps.notifications.models import Notification
+from apps.notifications.tasks import send_custom_notification
+from .factories import (
+    UserFactory,
+    HotelOwnerProfileFactory,
+    api_client,
+    celery_worker_parameters,
+)
+
+
+# 1. Request Submission Tests
+
+
+# @pytest.mark.django_db
+# def test_successful_owner_request(api_client):
+#     user = UserFactory(role="customer")
+#     api_client.force_authenticate(user)
+
+#     response = api_client.post(reverse("accounts:api_v1:request-hotel-owner"), {
+#         "company_name": "MyHotel",
+#         "business_license_number": "ABC123"
+#     })
+
+#     assert response.status_code == 201
+#     profile = HotelOwnerProfile.objects.get(user=user)
+#     assert profile.company_name == "MyHotel"
+#     assert profile.is_verified is False
+#     user.refresh_from_db()
+#     assert user.role == "customer"
+
+
+@pytest.mark.django_db
+def test_duplicate_owner_request(api_client):
+    profile = HotelOwnerProfileFactory(is_verified=True)
+    user = profile.user
+    api_client.force_authenticate(user)
+
+    response = api_client.post(
+        reverse("accounts:api_v1:request-hotel-owner"),
+        {"company_name": "DuplicateHotel", "business_license_number": "DUP123"},
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_request_missing_required_fields(api_client):
+    user = UserFactory(role="customer")
+    api_client.force_authenticate(user)
+
+    response = api_client.post(
+        reverse("accounts:api_v1:request-hotel-owner"), {}
+    )  # Empty payload
+
+    assert response.status_code == 400
+    assert "company_name" in response.data or "business_license_number" in response.data
+
+
+# Permission & Access Control Tests
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", ["admin", "hotel_owner"])
+def test_non_customer_cannot_request_hotel_owner(api_client, role):
+    user = UserFactory(role=role)
+    api_client.force_authenticate(user)
+
+    response = api_client.post(
+        reverse("accounts:api_v1:request-hotel-owner"),
+        {"company_name": "FakeHotel", "business_license_number": "FAKE123"},
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_unverified_owner_profile_access_denied(api_client):
+    profile = HotelOwnerProfileFactory(is_verified=False)
+    user = profile.user
+    api_client.force_authenticate(user)
+
+    response = api_client.get(reverse("accounts:api_v1:hotel-owner-profile"))
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_verified_owner_can_update_profile(api_client):
+    profile = HotelOwnerProfileFactory(is_verified=True)
+    user = profile.user
+    api_client.force_authenticate(user)
+
+    response = api_client.put(
+        reverse("accounts:api_v1:hotel-owner-profile"),
+        {
+            "company_name": "Hotel Paris",
+            "business_license_number": "PAR123",
+            "company_address": "Paris",
+        },
+    )
+
+    assert response.status_code == 200
+    profile.refresh_from_db()
+    assert profile.company_address == "Paris"
+
+
+#  Notification Tests
+
+
+@pytest.mark.django_db
+def test_notify_on_hotel_owner_approval():
+    profile = HotelOwnerProfileFactory(is_verified=False)
+    user = profile.user
+
+    profile.is_verified = True
+    profile.save()
+
+    send_custom_notification(
+        user.id,
+        message="Your hotel owner request has been approved  You can now create your hotel.",
+        priority="info",
+        redirect_url="/hotel-owner-profile/",
+    )
+
+    notif = Notification.objects.get(user=user)
+    assert "approved" in notif.message.lower()
+
+
+#  Role Integrity Test
+
+
+# @pytest.mark.django_db
+# def test_role_not_changed_on_request(api_client):
+#     user = UserFactory(role="customer")
+#     api_client.force_authenticate(user)
+
+#     response = api_client.post(reverse("accounts:api_v1:request-hotel-owner"), {
+#         "company_name": "RoleTestHotel",
+#         "business_license_number": "ROLE123"
+#     })
+
+#     assert response.status_code == 201
+#     user.refresh_from_db()
+#     assert user.role == "customer"

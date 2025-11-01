@@ -1,0 +1,102 @@
+services:
+  redis:
+    container_name: redis-staging
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    env_file:
+      - .env.staging
+
+  backend:
+    container_name: django-backend-staging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: django-backend:staging
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    expose:
+      - "8000"
+    env_file:
+      - .env.staging
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate &&
+             gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    depends_on:
+      - redis
+      - postgres
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-staging
+    restart: always
+    ports: 
+      - "80:80"
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/home/app/static
+      - media_volume:/home/app/media
+    depends_on:
+      - backend
+
+  worker:
+    container_name: celery-worker-staging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: celery-worker:staging
+    command: celery -A core worker --loglevel=info
+    depends_on:
+      - redis
+      - backend
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env.staging
+
+  flower:
+    container_name: celery-flower-staging
+    image: mher/flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - backend
+    env_file:
+      - .env.staging
+
+  beat:
+    container_name: celery-beat-staging
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: celery-beat:staging
+    command: celery -A core beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      - redis
+      - backend
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env.staging
+
+  postgres:
+    container_name: postgres-db-staging
+    image: postgres:16.2
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env.staging
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  static_volume:
+  media_volume:
+  postgres_data:

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from decouple import config
+from decouple import config, Csv
 from pathlib import Path
 import os
 import sys
@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = config("DEBUG", default=False, cast=bool)
 SECRET_KEY = config("SECRET_KEY")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 INTERNAL_IPS = ["127.0.0.1", "::1"]
 
 # Application definition
@@ -47,7 +47,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -124,8 +123,14 @@ USE_I18N = True
 
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "static/"
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+STATICFILES_DIR = [
+    BASE_DIR / "staticfiles",
+]
 
 # Default primary key field type
 
@@ -236,7 +241,6 @@ DEBUG_TOOLBAR_PANELS = [
     "debug_toolbar.panels.templates.TemplatesPanel",
     "debug_toolbar.panels.cache.CachePanel",
     "debug_toolbar.panels.signals.SignalsPanel",
-    "debug_toolbar.panels.logging.LoggingPanel",
 ]
 
 

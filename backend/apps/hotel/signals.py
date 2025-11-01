@@ -1,19 +1,37 @@
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
-from .models import Hotel
+from .models import Hotel, Room
 from django.core.cache import cache
 from apps.notifications.tasks import send_custom_notification
+
+
+from .models import Hotel, Room
+from .api.v1.services.cached_manager import SimpleCacheManager
 
 
 @receiver([post_save, post_delete], sender=Hotel)
 def invalidate_hotel_cache(sender, instance, **kwargs):
     """
-    Invalidate hotel list caches when a hotel is created, updated, or deleted
+    Invalidate hotel list cache when a hotel is created, updated, or deleted.
     """
-    print("Clearing hotel cache")
+    if instance.location and instance.location.city:
+        # Invalidate cache for the specific city
+        SimpleCacheManager.invalidate_by_filters(
+            'hotel', city=instance.location.city)
+    else:
+        # If no city is defined, invalidate all hotel list caches
+        SimpleCacheManager.invalidate_model_list('hotel')
 
-    # Clear hotel list caches
-    cache.delete_pattern("*hotel_list*")
+
+@receiver([post_save, post_delete], sender=Room)
+def invalidate_room_cache(sender, instance, **kwargs):
+    """
+    Invalidate hotel list cache when a room is created, updated, or deleted.
+    Assumes hotel list includes room-related data (e.g., room count).
+    """
+    if instance.hotel and instance.hotel.location and instance.hotel.location.city:
+        SimpleCacheManager.invalidate_by_filters(
+            'hotel', city=instance.hotel.location.city)
 
 
 @receiver(pre_save, sender=Hotel)

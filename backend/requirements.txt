@@ -1,0 +1,47 @@
+# Core Framework
+Django==4.2.5
+psycopg2-binary==2.9.7
+Pillow
+
+# REST API
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
+django-cors-headers==4.3.0
+django-filter
+python-decouple
+
+# Background Tasks
+celery
+redis
+django-celery-beat
+
+# Caching
+redis[hiredis]
+django-redis
+
+# Monitoring & Performance
+django-querycount
+azure-ai-inference
+
+# Documentation
+drf-yasg
+
+# Custom Modules
+django-daisy
+# Testing
+pytest
+pytest-django
+pytest-cov
+factory_boy
+
+# Debugging
+django-debug-toolbar
+django-silk
+
+# Code Quality
+black
+flake8
+isort
+
+# deplyment
+gunicorn
