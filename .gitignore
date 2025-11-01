@@ -10,7 +10,7 @@ media
 *.bak 
 static
 .env
-
+.env.staging
 # If you are using PyCharm # 
 # User-specific stuff
 .idea/**/workspace.xml
