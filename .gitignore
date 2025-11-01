@@ -139,4 +139,5 @@ GitHub.sublime-settings
 .history
 
 db.sq
-.env
+.envbackend/static/
+backend/static/
