@@ -31,7 +31,7 @@ def send_activation_email_task(user_id, email):
     context = {
         "code": code,
         "user": user,
-        "activation_link": f"http://localhost:8000/accounts/api/v1/activate/code/",
+        "activation_link": f"{settings.BACKEND_URL}/accounts/api/v1/activate/code/",
     }
     subject = "Activate Your Account"
     from_email = "no-reply@hotel.com"

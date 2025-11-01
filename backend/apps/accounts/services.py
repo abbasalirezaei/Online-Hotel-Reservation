@@ -2,15 +2,14 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.tokens import default_token_generator
-
-from django.utils.http import urlsafe_base64_encode
+from django.utils.http import urlsafe_base_64_encode
 from django.utils.encoding import force_bytes
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
-
+from django.db import transaction
+from django.conf import settings
 
 from apps.accounts.models import HotelOwnerProfile
-
 from apps.notifications.tasks import send_custom_notification
 from apps.accounts.tasks import send_activation_email_task
 from apps.accounts.exceptions import (
@@ -23,9 +22,6 @@ User = get_user_model()
 
 
 def validate_activation_code(code):
-    """
-    Validate the activation code for a user account.
-    """
     try:
         user = User.objects.get(active_code=code)
     except User.DoesNotExist:
@@ -52,8 +48,8 @@ def resend_activation_code(email):
 
 def send_password_reset_email(user):
     token = default_token_generator.make_token(user)
-    uid = urlsafe_base64_encode(force_bytes(user.pk))
-    reset_url = f"http://localhost:3000/password/reset/confirm/?uid={uid}&token={token}"
+    uid = urlsafe_base_64_encode(force_bytes(user.pk))
+    reset_url = f"{settings.FRONTEND_URL}/password/reset/confirm/?uid={uid}&token={token}"
     subject = "Reset your password"
     message = render_to_string(
         "registration/password_reset_email.html", {"user": user, "reset_url": reset_url}
@@ -76,17 +72,20 @@ def change_user_password(
     update_session_auth_hash(request, user)
 
 
+@transaction.atomic
 def request_hotel_owner(user, validated_data):
     if HotelOwnerProfile.objects.filter(user=user).exists():
         raise AlreadyHotelOwnerError(
             "You have already submitted a hotel owner request."
         )
 
+    user.role = "hotel_owner"
+    user.save(update_fields=["role"])
+
     profile = HotelOwnerProfile.objects.create(
         user=user, is_verified=False, **validated_data
     )
 
-    # Notify user about the submission
     send_custom_notification.delay(
         user.id,
         message="Your request to become a hotel owner has been submitted. You will be notified once it's reviewed by an admin.",

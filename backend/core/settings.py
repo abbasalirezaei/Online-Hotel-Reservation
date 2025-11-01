@@ -13,6 +13,9 @@ SECRET_KEY = config("SECRET_KEY")
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
 INTERNAL_IPS = ["127.0.0.1", "::1"]
 
+FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
+BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000")
+
 # Application definition
 
 INSTALLED_APPS = [

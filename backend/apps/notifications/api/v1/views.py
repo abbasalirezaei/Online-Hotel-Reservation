@@ -13,7 +13,8 @@ from .serializers import (
     CustomNotificationSerializer,
     GlobalNotificationSerializer,
 )
-from .permissions import IsHotelOwner
+# Import the stricter permission class
+from apps.accounts.api.v1.permissions import IsVerifiedHotelOwner
 
 User = get_user_model()
 
@@ -88,7 +89,8 @@ class MarkNotificationReadView(APIView):
 
 
 class SendCustomNotificationAPIView(APIView):
-    permission_classes = [IsHotelOwner]
+    # Updated permission to ensure only verified owners can send
+    permission_classes = [IsVerifiedHotelOwner]
 
     def post(self, request):
         serializer = CustomNotificationSerializer(data=request.data)
@@ -108,7 +110,8 @@ class SendCustomNotificationAPIView(APIView):
 
 
 class SendGlobalNotificationAPIView(APIView):
-    permission_classes = [IsHotelOwner]
+    # Updated permission to ensure only verified owners can send
+    permission_classes = [IsVerifiedHotelOwner]
 
     def post(self, request):
         serializer = GlobalNotificationSerializer(data=request.data)
